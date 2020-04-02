@@ -149,10 +149,9 @@ def add_data():
     docs = UploadSet('documents', ['xls', 'xlsx', 'csv'])
 
     found_hospitals = dict()
-
+    
     if data_form.validate_on_submit():
         filename = docs.save(data_form.file.data)
-        file_url = docs.url(filename)
 
         patients = pd.read_excel(docs.path(filename))
         added = 0
@@ -254,6 +253,88 @@ def add_data():
 
             created_patients.append(patient)
 
+        # def create_contacted_persons(row):
+        #     def get_date_of_birth(dob):
+        #         result = None
+        #         if isinstance(dob, pd._libs.tslibs.nattype.NaTType):
+        #             result = datetime(1000, 1, 1)
+        #         else:
+        #             if not isinstance(dob, datetime):
+        #                 try:
+        #                     result = dateutil.parser.parse(dob)
+        #                 except (TypeError, ValueError):
+        #                     result = datetime(1000, 1, 1)
+        #             else:
+        #                 result = dob
+        #         return result
+
+        #     # Infected
+        #     infected = Patient()
+        #     infected.full_name = row["ФИО больного"]
+        #     infected.iin = row["ИИН"]
+        #     infected.dob = get_date_of_birth(row["Дата рождения"])
+        #     infected.pass_num = row["Номер паспорта"]
+        #     infected.telephone = row["Номер мобильного телефона"]
+        #     infected.attrs["Дата постановки диагноза"] = row["Дата постановки диагноза"]
+        #     infected.attrs["Дата появления первых симптомов"] = row["Дата появления первых симптомов"]
+
+        #     # Contacted
+        #     contacted = Patient()
+        #     contacted.full_name = row["ФИО контактного лица"]
+        #     contacted.dob = get_date_of_birth(row["Дата рождения.1"])
+        #     contacted.iin = row["ИИН.1"]
+        #     contacted.home_address = row["Домашний адрес"]
+        #     contacted.telephone = row["Мобильный телефон"]
+        #     contacted.is_found = True if row["Связь с контактным лицом установлена"].contains("Да") else False
+        #     contacted.is_infected = True if row["Диагноз контакта"].lower() == "положительный" else False
+        #     contacted.is_contacted_person = True
+        #     contacted.attrs["Дата диагноза"] = row["Дата диагноза"]
+
+        #     hospitals = Hospital.query.all()
+        #     if not pd.isnull(row["Медицинская организация, осуществляющая наблюдение за контактным лицом"]):
+        #         hospital_lower = row["Медицинская организация, осуществляющая наблюдение за контактным лицом"].lower()
+        #         status = None
+        #         if len(hospital_lower):
+        #             status = c.in_hospital
+        #             hospital = found_hospitals.get(row["Медицинская организация, осуществляющая наблюдение за контактным лицом"], None)
+
+        #             if not hospital:
+        #                 hospital_distances = []
+        #                 hospital_name = row["Медицинская организация, осуществляющая наблюдение за контактным лицом"]
+
+        #                 for h in hospitals:
+        #                     hospital_distances.append(nltk.edit_distance(hospital_name, h.name, True))
+
+        #                 if len(hospital_distances):
+        #                     hospital = hospitals[np.argmin(hospital_distances)]
+        #                     contacted.hospital_id = hospital.id
+        #         else:
+        #             status = c.no_status
+                
+        #         if status != None:
+        #             contacted.status_id = PatientStatus.query.filter_by(value=status[0]).first().id
+        #     else:
+        #         contacted.status_id = PatientStatus.query.filter_by(value=c.no_status[0]).first().id
+
+        #     # ContactedPersons attrs
+
+        #     contact = ContactedPersons(patient_id=main_patient_id, person_id=patient.id)
+        #     contact.attrs["Место, где произошел контакт"] = row["Место, где произошел контакт"]
+        #     contact.attrs["Место (адрес) где произошел контакт"] = row["Место (адрес) где произошел контакт"]
+        #     contact.attrs["Дата контакта"] = row["Дата контакта"]
+        #     contact.attrs["Время контакта"] = row["Время контакта"]
+        #     contact.attrs["Длительность контакта (минуты)"] = row["Длительность контакта (минуты)"]
+        #     contact.attrs["Отношение к больному КВИ"] = row["Отношение к больному КВИ"]
+        #     contact.attrs["Кровный родственник"] = row["Кровный родственник"]
+
+
+        #     created_patients.append(patient)
+            
+        # columns = list(patients.columns)
+        # if "Место, где произошел контакт" in columns:
+            # patients.apply(lambda row: create_contacted_persons(row), axis=1)
+            # return route_template( 'patients/add_data', form=data_form, added=added)
+        
         patients.apply(lambda row: create_patient(row), axis=1)
         added = len(patients)
 

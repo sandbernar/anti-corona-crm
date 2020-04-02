@@ -1,14 +1,18 @@
 version: '3'
+# for dev
+networks:
+  default:
+    external:
+      name: postgres
 services:
   appseed-app:
     restart: always
-    network_mode: "host"
+    # # for production
+    # network_mode: "host"
     env_file: .env
-    # image: demo
     build: .
     ports:
       - "5005:5005"
     volumes:
-      # - ./app:/app
       - .:/app
       - ./migrations:/migrations
