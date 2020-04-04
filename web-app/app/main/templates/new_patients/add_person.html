@@ -49,188 +49,207 @@
     </div>
     {% endif %}
 
+
+
     <div class="nav-wrapper">
-        <ul class="nav nav-pills nav-fill flex-column flex-md-row" id="tabs-icons-text" role="tablist">
+        <ul class="nav nav-pills nav-fill flex-column flex-md-row">
             <li class="nav-item">
-                <a class="nav-link mb-sm-3 mb-md-0 active" id="tabs-icons-text-1-tab" data-toggle="tab" href="#tabs-icons-text-1" role="tab" aria-controls="tabs-icons-text-1" aria-selected="true">{{ _("Выбрать Тип Въезда") }}</a>
+                <button class="tablinks btn btn-primary btn-lg btn-block" id="Tab1Btn">{{ _("Выбрать Тип Въезда") }}</button>
             </li>
             <li class="nav-item">
-                <a class="nav-link mb-sm-3 mb-md-0" id="tabs-icons-text-2-tab" data-toggle="tab" href="#tabs-icons-text-2" role="tab" aria-controls="tabs-icons-text-2" aria-selected="false">{{ _("Информация о Пациенте") }}</a>
+                <button class="tablinks btn btn-primary btn-lg btn-block" id="Tab2Btn">{{ _("Информация о Пациенте") }}</button>
             </li>
             <li class="nav-item">
-                <a class="nav-link mb-sm-3 mb-md-0" id="tabs-icons-text-3-tab" data-toggle="tab" href="#tabs-icons-text-3" role="tab" aria-controls="tabs-icons-text-3" aria-selected="false"></i>Госпитализация</a>
+                <button class="tablinks btn btn-primary btn-lg btn-block" id="Tab3Btn">Госпитализация</button>
             </li>
         </ul>
     </div>
-
+    
     <form id="add_patients" role="form" method="post" action="">
-    <div class="card shadow">
+    
+    <div id="Tab1" class="tabcontent card shadow">
         <div class="card-body">
-            <div class="tab-content" id="myTabContent">
-                <div class="tab-pane fade show active" id="tabs-icons-text-1" role="tabpanel" aria-labelledby="tabs-icons-text-1-tab">
-                    
-                    
-                    
-                        <div class="card-body">
-                            <div class="row" id="travel_form">        
-                                <div class="form-group">
-                                    <label for="flight-no-input" class="form-control-label">{{ _("Тип Въезда в Страну") }}</label>
-                                    {{ form.travel_type(class="form-control") }}
-                                </div>
-                            </div>
-                        </div>
-                    
-
-                </div>
-                <div class="tab-pane fade" id="tabs-icons-text-2" role="tabpanel" aria-labelledby="tabs-icons-text-2-tab">
-                    
-                    <div class="row">
-                        <div class="col">
-                            <div class="card">
-                                <div class="card-header bg-transparent">
-                                    <div class="form-group">
-                                        <label for="name-input" class="form-control-label">{{ _("ФИО") }}</label>
-                                        {{ form.full_name(placeholder=_("Иванов Иван"),class="form-control", type="text") }}
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="iin-input" class="form-control-label">{{ _("ИИН") }}</label>
-                                        {{ form.iin(placeholder=_("12 Цифр"),class="form-control", type="text", onkeyup="this.value=this.value.replace(/[^0-9]/g,'');") }}
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="dob-input" class="form-control-label">{{ _("Дата Рождения") }}</label>
-                                        {{ form.dob(class="form-control", type="date") }}
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="citizenship-input" class="form-control-label">{{ _("Гражданство") }}</label>
-                                        {{ form.citizenship(class="form-control") }}
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="npass-input" class="form-control-label">{{ _("Номер Паспорта") }}</label>
-                                        {{ form.pass_num(placeholder=_("N12345678"), class="form-control", type="text") }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="card">
-                                <div class="card-header bg-transparent">
-                                    <div class="form-group">
-                                        <label for="14days-place-input" class="form-control-label">{{ _("Место и сроки пребывания в последние 14 дней") }}</label>
-                                        {{ form.visited_country(class="form-control", type="text", placeholder=_("Италия") ) }}
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="region-input" class="form-control-label">{{ _("Регион") }}</label>
-                                        {{ form.region_id(class="form-control", id="region_id") }}                          
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="home-input" class="form-control-label">{{ _("Место жительства / возможное место проживания") }}</label>
-                                        {{ form.home_address(class="form-control", type="text", placeholder=_("Алматы") ) }}
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="job-input" class="form-control-label">{{ _("Место Работы") }}</label>
-                                        {{ form.job(class="form-control", type="text", placeholder=_("Алматы") ) }}
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="phone-input" class="form-control-label">{{ _("Телефон") }}</label>
-                                        {{ form.telephone(placeholder=_("77017123456"), class="form-control", type="tel") }}
-                                    </div>                        
-                                </div>
-                            </div>
+            <div class="card-body">
+                <div class="col">
+                    <div class="row" id="travel_form">        
+                        <div class="form-group">
+                            <label for="flight-no-input" class="form-control-label">{{ _("Тип Въезда в Страну") }}</label>
+                            {{ form.travel_type(class="form-control") }}
                         </div>
                     </div>
-                    
-                </div>
-                <div class="tab-pane fade" id="tabs-icons-text-3" role="tabpanel" aria-labelledby="tabs-icons-text-3-tab">
-
-                    <div class="row">
-                            <div class="card-body">
-                                <div class="row">
-                                        {{ form.hidden_tag() }}
-                                        <div class="row">
-                                            <div class="col">
-                                                <div class="card">
-                                                    <div class="card-header bg-transparent">
-                                                        <div class="card-body">
-                                                            <div class="col">
-                                                                <div class="row">
-                                                                    <div class="form-group">
-                                                                        <label class="form-control-label">{{ _("Найден?") }}</label><br>
-                                                                        {% for subfield in form.is_found %}
-                                                                        <div class="custom-control custom-radio custom-control-inline">
-                                                                            {{ subfield(type="radio", id=subfield.id, class="custom-control-input", onchange="disable_status(value)" ) }}
-                                                                            <label class="custom-control-label" for='{{ subfield.id }}'>{{ subfield.label }}</label>
-                                                                        </div>
-                                                                        {% endfor %}
-                                                                    </div>
-                                                                </div>
-                                                                <div class="row">
-                                                                    <div class="form-group">
-                                                                        <label class="form-control-label">{{ _("Инфицирован?") }}</label><br>
-                                                                        {% for subfield in form.is_infected %}
-                                                                        <div class="custom-control custom-radio custom-control-inline">
-                                                                            {{ subfield(type="radio", id=subfield.id, class="custom-control-input") }}
-                                                                            <label class="custom-control-label" for='{{ subfield.id }}'>{{ subfield.label }}</label>
-                                                                        </div>
-                                                                        {% endfor %}
-                                                                    </div>
-                                                                </div>             
-                                                                <div class="row">
-                                                                    <div class="form-group">
-                                                                        <label class="form-control-label">{{ _("Статус Нахождения") }}</label><br>
-                                                                        {{ form.patient_status(class="form-control", id="patient_status") }}
-                                                                    </div>
-                                                                </div>                            
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col">
-                                                <div class="card">
-                                                    <div class="card-header bg-transparent">
-                                                        <div class="card-body">
-                                                            <div class="row">
-                                                                <div class="row">
-                                                                    <div class="form-group">
-                                                                        <label for="job-input" class="form-control-label">{{ _("Регион Госпитализации") }}</label>
-                                                                        {{ form.hospital_region_id(class="form-control", id="hospital_region_id") }}
-                                                                    </div>
-                                                                </div>
-                                                                <div class="row">
-                                                                    <div class="form-group">
-                                                                        <label for="job-input" class="form-control-label">{{ _("Тип Больницы") }}</label>
-                                                                        <select class="form-control" id="hospital_type" name="hospital_region_id" required="">
-                                                                            {% for subfield in hospital_types %}
-                                                                            <option value={{ subfield[0] }}>{{ subfield[1] }}</option>
-                                                                            {% endfor %}
-                                                                        </select>
-                                                                    </div>
-                                                                </div>                            
-                                                                <div class="row">
-                                                                    <div class="form-group">
-                                                                        <label for="job-input" class="form-control-label">{{ _("Место Госпитализации") }}</label>
-                                                                        {{ form.hospital_id(class="form-control", id="hospital_select") }}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>                  
-                                            <button type="submit" id="hiddenSubmit" style="display:none;"></button>
-                                        </div>
-                                        <div class="row elem-center">
-                                            <button id="open_modal_add_patient" class="btn btn-primary" data-toggle="modal" data-target="#addPatientModal" class="btn btn-primary" type="button" style="height:100%; width:100%;">
-                                                {{ _("Отправить") }}
-                                            </button>
-                                        </div>
-                                </div>
-                            </div>
+                    <div class="row card-body">
+                        <button id="FromTab1ToTab2" class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab2')">
+                            {{ _("Информация о Пациенте") }} <i class="ni ni-bold-right"></i>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-    </div> 
+    </div>
+
+    <div id="Tab2" class="tabcontent card shadow">
+        <div class="col card-body">
+            <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <div class="card-header bg-transparent">
+                            <div class="form-group">
+                                <label for="name-input" class="form-control-label">{{ _("ФИО") }}</label>
+                                {{ form.full_name(placeholder=_("Иванов Иван"),class="form-control", type="text") }}
+                            </div>
+                            <div class="form-group">
+                                <label for="iin-input" class="form-control-label">{{ _("ИИН") }}</label>
+                                {{ form.iin(placeholder=_("12 Цифр"),class="form-control", type="text", onkeyup="this.value=this.value.replace(/[^0-9]/g,'');") }}
+                            </div>
+                            <div class="form-group">
+                                <label for="dob-input" class="form-control-label">{{ _("Дата Рождения") }}</label>
+                                {{ form.dob(class="form-control", type="date") }}
+                            </div>
+                            <div class="form-group">
+                                <label for="citizenship-input" class="form-control-label">{{ _("Гражданство") }}</label>
+                                {{ form.citizenship(class="form-control") }}
+                            </div>
+                            <div class="form-group">
+                                <label for="npass-input" class="form-control-label">{{ _("Номер Паспорта") }}</label>
+                                {{ form.pass_num(placeholder=_("N12345678"), class="form-control", type="text") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card">
+                        <div class="card-header bg-transparent">
+                            <div class="form-group">
+                                <label for="14days-place-input" class="form-control-label">{{ _("Место и сроки пребывания в последние 14 дней") }}</label>
+                                {{ form.visited_country(class="form-control", type="text", placeholder=_("Италия") ) }}
+                            </div>
+                            <div class="form-group">
+                                <label for="region-input" class="form-control-label">{{ _("Регион") }}</label>
+                                {{ form.region_id(class="form-control", id="region_id") }}                          
+                            </div>
+                            <div class="form-group">
+                                <label for="home-input" class="form-control-label">{{ _("Место жительства / возможное место проживания") }}</label>
+                                {{ form.home_address(class="form-control", type="text", placeholder=_("Алматы") ) }}
+                            </div>
+                            <div class="form-group">
+                                <label for="job-input" class="form-control-label">{{ _("Место Работы") }}</label>
+                                {{ form.job(class="form-control", type="text", placeholder=_("Алматы") ) }}
+                            </div>
+                            <div class="form-group">
+                                <label for="phone-input" class="form-control-label">{{ _("Телефон") }}</label>
+                                {{ form.telephone(placeholder=_("77017123456"), class="form-control", type="tel") }}
+                            </div>                        
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row card-body">
+                <div class="col">
+                    <button id="ToTab1" class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab1')">
+                        <i class="ni ni-bold-left"></i> {{ _("Выбрать Тип Въезда") }}
+                    </button>
+                </div>
+                <div class="col"></div>
+                <div class="col"></div>
+                <div class="col">
+                    <button id="ToTab3" class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab3')">
+                        Госпитализация <i class="ni ni-bold-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="Tab3" class="tabcontent card shadow">
+        <div class="col card-body">
+            <div class="card-body">
+                <div class="row">
+                <!-- <div class="card"> -->
+                            {{ form.hidden_tag() }}
+                                <div class="col">
+                                    <div class="card bg-transparent">
+                                        <div class="card-body">
+                                                <div class="row">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">{{ _("Найден?") }}</label><br>
+                                                        {% for subfield in form.is_found %}
+                                                        <div class="custom-control custom-radio custom-control-inline">
+                                                            {{ subfield(type="radio", id=subfield.id, class="custom-control-input", onchange="disable_status(value)" ) }}
+                                                            <label class="custom-control-label" for='{{ subfield.id }}'>{{ subfield.label }}</label>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">{{ _("Инфицирован?") }}</label><br>
+                                                        {% for subfield in form.is_infected %}
+                                                        <div class="custom-control custom-radio custom-control-inline">
+                                                            {{ subfield(type="radio", id=subfield.id, class="custom-control-input") }}
+                                                            <label class="custom-control-label" for='{{ subfield.id }}'>{{ subfield.label }}</label>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>             
+                                                <div class="row">
+                                                    <div class="form-group">
+                                                        <label class="form-control-label">{{ _("Статус Нахождения") }}</label><br>
+                                                        {{ form.patient_status(class="form-control", id="patient_status") }}
+                                                    </div>
+                                                </div>                            
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="card bg-transparent">
+                                        <div class="card-body">
+
+                                                <div class="row">
+                                                    <div class="form-group">
+                                                        <label for="job-input" class="form-control-label">{{ _("Регион Госпитализации") }}</label>
+                                                        {{ form.hospital_region_id(class="form-control", id="hospital_region_id") }}
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="form-group">
+                                                        <label for="job-input" class="form-control-label">{{ _("Тип Больницы") }}</label>
+                                                        <select class="form-control" id="hospital_type" name="hospital_region_id" required="">
+                                                            {% for subfield in hospital_types %}
+                                                            <option value={{ subfield[0] }}>{{ subfield[1] }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>                            
+                                                <div class="row">
+                                                    <div class="form-group">
+                                                        <label for="job-input" class="form-control-label">{{ _("Место Госпитализации") }}</label>
+                                                        {{ form.hospital_id(class="form-control", id="hospital_select") }}
+                                                    </div>
+                                                </div>
+
+                                        </div>
+                                    </div>
+                                </div>                  
+                                <button type="submit" id="hiddenSubmit" style="display:none;"></button>
+                    </div>
+                <!-- </div> -->
+            </div>
+            <div class="row card-body">
+                <div class="col">
+                    <button id="FromTab3ToTab2" class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab2')">
+                        <i class="ni ni-bold-left"></i> {{ _("Информация о Пациенте") }}
+                    </button>
+                </div>
+                <div class="col"></div>
+                <div class="col"></div>
+                <div class="col">
+                    <button class="btn btn-primary btn-lg btn-block" id="open_modal_add_patient" class="btn btn-primary" data-toggle="modal" data-target="#addPatientModal" >
+                        {{ _("Отправить") }} <i class="ni ni-send"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     </form>
   {% include "site_template/footer.html" %}
 
@@ -245,6 +264,7 @@
   {% with form=form, c=c %}
     {% include "js/travel_form.html" %}
   {% endwith %}
+  document.getElementById("ToTab1").click();
 
   disable_hospital_choice(0)
   
@@ -415,6 +435,92 @@ $("#open_modal_add_patient").on("click", function(e){
   }
 });
 
+function openCity(evt, cityName) {
+  // Declare all variables
+  var i, tabcontent, tablinks;
+
+  // Get all elements with class="tabcontent" and hide them
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("tablinks");
+  for (i = 0; i < tablinks.length; i++) {
+      console.log(tablinks[i]);
+      tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+
+  splitted = cityName.split("To")
+  btnName = splitted[splitted.length-1]+"Btn"
+  console.log(btnName);
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(cityName).style.display = "block";
+  document.getElementById(btnName).className += " active"
+}
+
+// $("#FromTab1ToTab2").on("click", function(){
+//   $("#Tab1").removeClass("active");
+//   $("#Tab2").addClass("active");
+// });
+
+// $("#ToTab1").on("click", function(){
+//   $("#Tab2").removeClass("active");
+//   $("#Tab1").addClass("active");
+// });
+
+// $("#ToTab3").on("click", function(){
+//   $("#Tab2").removeClass("active");
+//   $("#Tab3").addClass("active");
+// });
+
+// $("#FromTab3ToTab2").on("click", function(){
+//   $("#Tab3").removeClass("active");
+//   $("#Tab2").addClass("active");
+// });
+
 </script>
+
+<style>
+.tablinks {
+    margin: 0.5rem 0;
+}
+
+.tab {
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #f1f1f1;
+}
+
+/* Style the buttons that are used to open the tab content */
+.tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+  background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+  background-color: #ccc;
+}
+
+/* Style the tab content */
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
+} 
+</style>
 
 {% endblock javascripts %}
