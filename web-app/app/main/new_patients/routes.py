@@ -155,7 +155,7 @@ def add_new_patient():
 
         return jsonify({"patient_id": patient.id})
     else:
-        return route_template( 'patients/add_person', form=patient_form, hospital_types=hospital_types, added=False, error_msg=None, c=c)
+        return route_template( 'new_patients/add_person', form=patient_form, hospital_types=hospital_types, added=False, error_msg=None, c=c)
 
 def get_lat_lng(patients):
     lat_lng = []
