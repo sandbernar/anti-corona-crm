@@ -54,13 +54,16 @@
     <div class="nav-wrapper">
         <ul class="nav nav-pills nav-fill flex-column flex-md-row">
             <li class="nav-item">
-                <button class="tablinks btn btn-primary btn-lg btn-block" id="Tab1Btn">{{ _("Выбрать Тип Въезда") }}</button>
+                <button class="tablinks btn btn-secondary btn-lg btn-block" id="Tab1Btn">{{ _("Выбрать Тип Въезда") }}</button>
             </li>
             <li class="nav-item">
-                <button class="tablinks btn btn-primary btn-lg btn-block" id="Tab2Btn">{{ _("Информация о Пациенте") }}</button>
+                <button class="tablinks btn btn-secondary btn-lg btn-block" id="Tab2Btn">{{ _("Информация о Пациенте") }}</button>
             </li>
             <li class="nav-item">
-                <button class="tablinks btn btn-primary btn-lg btn-block" id="Tab3Btn">Госпитализация</button>
+                <button class="tablinks btn btn-secondary btn-lg btn-block" id="Tab3Btn">Госпитализация</button>
+            </li>
+            <li class="nav-item">
+                <button class="tablinks btn btn-secondary btn-lg btn-block" id="Tab4Btn">Поездки</button>
             </li>
         </ul>
     </div>
@@ -152,7 +155,7 @@
                 <div class="col"></div>
                 <div class="col"></div>
                 <div class="col">
-                    <button id="ToTab3" class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab3')">
+                    <button class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab3')">
                         Госпитализация <i class="ni ni-bold-right"></i>
                     </button>
                 </div>
@@ -236,13 +239,16 @@
             </div>
             <div class="row card-body">
                 <div class="col">
-                    <button id="FromTab3ToTab2" class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab2')">
+                    <button class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab2')">
                         <i class="ni ni-bold-left"></i> {{ _("Информация о Пациенте") }}
                     </button>
                 </div>
                 <div class="col"></div>
                 <div class="col"></div>
                 <div class="col">
+                    <button class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab4')">
+                        Поездки <i class="ni ni-bold-right"></i>
+                    </button>
                     <button class="btn btn-primary btn-lg btn-block" id="open_modal_add_patient" class="btn btn-primary" data-toggle="modal" data-target="#addPatientModal" >
                         {{ _("Отправить") }} <i class="ni ni-send"></i>
                     </button>
@@ -250,6 +256,34 @@
             </div>
         </div>
     </div>
+
+    <div id="Tab4" class="tabcontent card shadow">
+        <div class="col card-body">
+            <div class="card-body">
+                <div class="col">
+                    <div class="row">
+                        <button onclick="addFields()" class="btn btn-icon btn-primary" type="button">
+                            <span class="btn-inner--icon"><i class="ni ni-fat-add"></i></span>
+                        </button>
+                    </div>
+                    <div id="fieldsContainer">
+
+                    </div>
+                    <div class="row card-body">
+                        <div class="col">
+                            <button class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab3')">
+                                <i class="ni ni-bold-left"></i> Госпитализация
+                            </button>
+                        </div>
+                        <div class="col"></div>
+                        <div class="col"></div>
+                        <div class="col"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     </form>
   {% include "site_template/footer.html" %}
 
@@ -261,17 +295,17 @@
 {{ super()}}
 
 <script type="text/javascript">
-  {% with form=form, c=c %}
-    {% include "js/travel_form.html" %}
-  {% endwith %}
-  document.getElementById("ToTab1").click();
+    {% with form=form, c=c %}
+        {% include "js/travel_form.html" %}
+    {% endwith %}
 
-  disable_hospital_choice(0)
-  
-  update_hospitals_list()
-  update_travel_form()
+    var numberOfAddedFields = 0;
+    document.getElementById("ToTab1").click();
 
-  disable_status($("#hospital_select").val())
+    disable_hospital_choice(0)  
+    update_hospitals_list()
+    update_travel_form()
+    disable_status($("#hospital_select").val())
 
   function disable_status(value) {
     disable = true
@@ -436,49 +470,73 @@ $("#open_modal_add_patient").on("click", function(e){
 });
 
 function openCity(evt, cityName) {
-  // Declare all variables
-  var i, tabcontent, tablinks;
+    // Declare all variables
+    var i, tabcontent, tablinks;
 
-  // Get all elements with class="tabcontent" and hide them
-  tabcontent = document.getElementsByClassName("tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
-  }
+    // Get all elements with class="tabcontent" and hide them
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
 
-  // Get all elements with class="tablinks" and remove the class "active"
-  tablinks = document.getElementsByClassName("tablinks");
-  for (i = 0; i < tablinks.length; i++) {
-      console.log(tablinks[i]);
-      tablinks[i].className = tablinks[i].className.replace(" active", "");
-  }
+    // Get all elements with class="tablinks" and remove the class "active"
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" btn-success", "");
+        tablinks[i].className = tablinks[i].className.replace(" btn-warning", "");
+    }
 
-  splitted = cityName.split("To")
-  btnName = splitted[splitted.length-1]+"Btn"
-  console.log(btnName);
-  // Show the current tab, and add an "active" class to the button that opened the tab
-  document.getElementById(cityName).style.display = "block";
-  document.getElementById(btnName).className += " active"
+    // var splitted = cityName.split("To")
+    var number = parseInt(cityName[cityName.length-1])
+    console.log(number, cityName);
+    // set active all elements before number incl.
+    for (i = 1; i < number; i++) {
+        var btnName = "Tab"+i+"Btn"
+        document.getElementById(btnName).className += " btn-success"
+    }
+    document.getElementById("Tab"+number+"Btn").className += " btn-warning"
+    // Show the current tab, and add an "active" class to the button that opened the tab
+    document.getElementById(cityName).style.display = "block";
 }
 
-// $("#FromTab1ToTab2").on("click", function(){
-//   $("#Tab1").removeClass("active");
-//   $("#Tab2").addClass("active");
-// });
+function addFields(){
+    var container = document.getElementById("fieldsContainer");
+    var formGroup = document.createElement("div");
+    formGroup.className = "form-group"
 
-// $("#ToTab1").on("click", function(){
-//   $("#Tab2").removeClass("active");
-//   $("#Tab1").addClass("active");
-// });
 
-// $("#ToTab3").on("click", function(){
-//   $("#Tab2").removeClass("active");
-//   $("#Tab3").addClass("active");
-// });
+    var label = `<label class="form-control-label" for="basic-url">Поездка</label>`;
 
-// $("#FromTab3ToTab2").on("click", function(){
-//   $("#Tab3").removeClass("active");
-//   $("#Tab2").addClass("active");
-// });
+    const inputField = `
+    <div class="row">
+        <div class="col">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text"><i class="ni ni-calendar-grid-58"></i></span>
+                </div>
+                <input class="form-control datepicker" placeholder="Select date" type="text" value="06/20/2020">
+            </div>
+        </div>    
+        <div class="col">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Рейс" aria-label="Recipient's username with two button addons" aria-describedby="button-addon4">
+                <div class="input-group-append" id="button-addon4">
+                    <button class="btn btn-icon btn-success" type="button">
+                        <span class="btn-inner--icon"><i class="ni ni-check-bold"></i></span>
+                    </button>
+                    <button class="btn btn-icon btn-danger" type="button">
+                        <span class="btn-inner--icon"><i class="ni ni-fat-remove"></i></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    formGroup.innerHTML += label;
+    formGroup.innerHTML += inputField;
+
+    container.appendChild(formGroup);
+    numberOfAddedFields++;
+}
 
 </script>
 
