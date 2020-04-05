@@ -1,4 +1,30 @@
-
+<script>
+  var collapsed = false;
+  function collapseSideBar() {
+      var sidenav = document.getElementById("sidenav-main");
+      var main = document.getElementsByClassName("main-content")[0];
+      // var logo = document.getElementById("covidLogo");
+      var navTexts = document.getElementsByClassName('nav-text');
+      
+      collapsed = !collapsed;
+  
+      if (collapsed) {
+          sidenav.style.maxWidth = "60px";
+          main.style.marginLeft = "60px";
+          // logo.style.display = "none";
+          for(var i=0; i< navTexts.length; i++){
+              navTexts[i].style.display = "none";
+          }
+      } else {
+          sidenav.style.maxWidth = "250px";
+          main.style.marginLeft = "250px";
+          // logo.style.display = "block";
+          for(var i=0; i< navTexts.length; i++){
+              navTexts[i].style.display = "block";
+          }
+      }
+  }
+  </script>
   <!-- Sidenav -->
   <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-white" id="sidenav-main">
     <div class="container-fluid">
@@ -132,31 +158,4 @@
     </div>
   </nav>
 
-<script>
-var collapsed = false;
-function collapseSideBar() {
-    var sidenav = document.getElementById("sidenav-main");
-    var main = document.getElementsByClassName("main-content")[0];
-    // var logo = document.getElementById("covidLogo");
-    var navTexts = document.getElementsByClassName('nav-text');
-    
-    collapsed = !collapsed;
-
-    if (collapsed) {
-        sidenav.style.maxWidth = "60px";
-        main.style.marginLeft = "60px";
-        // logo.style.display = "none";
-        for(var i=0; i< navTexts.length; i++){
-            navTexts[i].style.display = "none";
-        }
-    } else {
-        sidenav.style.maxWidth = "250px";
-        main.style.marginLeft = "250px";
-        // logo.style.display = "block";
-        for(var i=0; i< navTexts.length; i++){
-            navTexts[i].style.display = "block";
-        }
-    }
-}
-</script>
 
