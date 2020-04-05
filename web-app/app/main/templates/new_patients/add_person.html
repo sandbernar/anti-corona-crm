@@ -504,7 +504,6 @@ function addFields(){
     var formGroup = document.createElement("div");
     formGroup.className = "form-group"
 
-
     var label = `<label class="form-control-label" for="basic-url">Поездка</label>`;
 
     const inputField = `
@@ -524,7 +523,7 @@ function addFields(){
                     <button class="btn btn-icon btn-success" type="button">
                         <span class="btn-inner--icon"><i class="ni ni-check-bold"></i></span>
                     </button>
-                    <button class="btn btn-icon btn-danger" type="button">
+                    <button class="btn btn-icon btn-danger" onclick="removeElement(this)" type="button">
                         <span class="btn-inner--icon"><i class="ni ni-fat-remove"></i></span>
                     </button>
                 </div>
@@ -536,6 +535,10 @@ function addFields(){
 
     container.appendChild(formGroup);
     numberOfAddedFields++;
+}
+
+function removeElement(el) {
+    el.parentNode.parentNode.parentNode.parentNode.parentNode.remove();
 }
 
 </script>
