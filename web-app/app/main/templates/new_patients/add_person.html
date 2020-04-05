@@ -81,7 +81,7 @@
                         </div>
                     </div>
                     <div class="row card-body">
-                        <button id="FromTab1ToTab2" class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab2')">
+                        <button class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab2')">
                             {{ _("Информация о Пациенте") }} <i class="ni ni-bold-right"></i>
                         </button>
                     </div>
@@ -148,7 +148,7 @@
             </div>
             <div class="row card-body">
                 <div class="col">
-                    <button id="ToTab1" class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab1')">
+                    <button class="btn btn-primary btn-lg btn-block" onclick="openCity(event, 'Tab1')">
                         <i class="ni ni-bold-left"></i> {{ _("Выбрать Тип Въезда") }}
                     </button>
                 </div>
@@ -307,240 +307,234 @@
     update_travel_form()
     disable_status($("#hospital_select").val())
 
-  function disable_status(value) {
-    disable = true
-    if (value == 1) {
-      disable = false
-    } else {
-      $('#patient_status').prop('selectedIndex', 0).change();
-      // document.getElementById('in_hospital-0').checked = false;
-      // document.getElementById('in_hospital-1').checked = false;
-      // disable_hospital_choice(value)
+    function disable_status(value) {
+        disable = true
+        if (value == 1) {
+            disable = false
+        } else {
+            $('#patient_status').prop('selectedIndex', 0).change();
+        // document.getElementById('in_hospital-0').checked = false;
+        // document.getElementById('in_hospital-1').checked = false;
+        // disable_hospital_choice(value)
+        }
+        document.getElementById('patient_status').disabled = disable;
+        // document.getElementById('in_hospital-1').disabled = disable;    
     }
 
-    document.getElementById('patient_status').disabled = disable;
-    // document.getElementById('in_hospital-1').disabled = disable;    
-  }
+    function disable_in_hospital(value) {
+        disable = true
+        if (value == 1) {
+            disable = false
+        } else {
+            document.getElementById('in_hospital-0').checked = false;
+            document.getElementById('in_hospital-1').checked = false;
+            disable_hospital_choice(value)
+        }
 
-  function disable_in_hospital(value) {
-    disable = true
-    if (value == 1) {
-      disable = false
-    } else {
-      document.getElementById('in_hospital-0').checked = false;
-      document.getElementById('in_hospital-1').checked = false;
-      disable_hospital_choice(value)
+        document.getElementById('in_hospital-0').disabled = disable;
+        document.getElementById('in_hospital-1').disabled = disable;
     }
 
-    document.getElementById('in_hospital-0').disabled = disable;
-    document.getElementById('in_hospital-1').disabled = disable;
-  }
-
-  function disable_hospital_choice(value) {
-    disable = true;
-    if (value == 1) {
-      disable = false;
+    function disable_hospital_choice(value) {
+        disable = true;
+        if (value == 1) {
+            disable = false;
+        }
+        document.getElementById('hospital_region_id').disabled = disable;
+        document.getElementById('hospital_type').disabled = disable;
+        document.getElementById('hospital_select').disabled = disable;
     }
 
-    document.getElementById('hospital_region_id').disabled = disable;
-    document.getElementById('hospital_type').disabled = disable;
-    document.getElementById('hospital_select').disabled = disable;
-  }
-
-  function update_hospitals_list(){
-    $.ajax({
-      type: 'POST',
-      url: "/get_hospital_by_region",
-      data: {region_id: $("#hospital_region_id").val(), hospital_type_id: $("#hospital_type").val()},
-      dataType: "text",
-      success: function(data){
-        document.getElementById("hospital_select").innerHTML = data.toString();
-      }
-    });
-  };
-
-  function show_loader(show) {
-    var loader = $("#submit_loader")
-    var submit_button = $("#submit_button")
-    var cancel_button = $("#cancel_button")
-    
-    var z = 0
-
-    if (show == true) {
-      z = 1
-
-      submit_button.addClass("disabled")
-      cancel_button.addClass("disabled")
-    } else {
-      submit_button.removeClass("disabled")
-      cancel_button.removeClass("disabled")
-    }
-
-    loader.css("z-index", z)
-  }
-
-function submit_new_patient() {
-  show_loader(true)
-
-   $.post($("#add_patients").attr('action'), $("#add_patients").serialize() + '&create', function(res){
-      // Do something with the response `res`
-      if (res.patient_id !== undefined) {
-        $.notify({
-          // options
-          icon: 'fa fa-thumbs-up',
-          message: `<a href="\patient_profile?id=${res.patient_id}">{{ _("Пациент") }}</a> {{ _("добавлен в базу данных") }}`
-        },{
-          // settings
-          type: 'info',
+    function update_hospitals_list(){
+        $.ajax({
+            type: 'POST',
+            url: "/get_hospital_by_region",
+            data: {region_id: $("#hospital_region_id").val(), hospital_type_id: $("#hospital_type").val()},
+            dataType: "text",
+            success: function(data){
+                document.getElementById("hospital_select").innerHTML = data.toString();
+            }
         });
-        show_loader(false)
-        reset_add_patient_form()
-        $("#addPatientModal").modal('hide');
-      }
-  });
-}
+    };
 
-function reset_add_patient_form() {
-  var travel_type = $("#travel_type").val()
-  var backup_values = {}
-  
-  if (travel_type === '{{c.flight_type[0]}}') {
-    backup_values["#flight_arrival_date"] = $("#flight_arrival_date").val()
-    backup_values["#flight_code_id"] = $("#flight_code_id").val()
-  } else {
-    backup_values["#arrival_date"] = $("#arrival_date").val()
-    var border_form_id = null
-    
-    switch(travel_type) {
-      case '{{c.by_auto_type[0]}}':
-        border_form_id = "#auto_border_id"
-        break;
-      case '{{c.by_foot_type[0]}}':
-        border_form_id = "#foot_border_id"
-        break;
-      case '{{c.by_sea_type[0]}}':
-        border_form_id = "#sea_border_id"
-        break;
+    function show_loader(show) {
+        var loader = $("#submit_loader")
+        var submit_button = $("#submit_button")
+        var cancel_button = $("#cancel_button")
+        var z = 0
+
+        if (show == true) {
+            z = 1
+            submit_button.addClass("disabled")
+            cancel_button.addClass("disabled")
+        } else {
+            submit_button.removeClass("disabled")
+            cancel_button.removeClass("disabled")
+        }
+        loader.css("z-index", z)
     }
 
-    if (border_form_id) backup_values[border_form_id] = $(border_form_id).val()
-  }
+    function submit_new_patient() {
+        show_loader(true)
 
-  $("#add_patients")[0].reset();
-
-  $("#travel_type").val(travel_type)
-
-  for (var key in backup_values) {
-    if (backup_values.hasOwnProperty(key)) {
-        $(key).val(backup_values[key])
-    }
-  }
-}
-
-$("#add_patients").on("reset", function(){
-  $("#is_found-0").change()
-  $("#is_found-1").change()
-});
-
-$("#hospital_region_id").on("change", function(){
-  update_hospitals_list();
-});
-
-$("#hospital_type").on("change", function(){
-  update_hospitals_list();
-});
-
-$("#travel_type").on("change", function(){
-  update_travel_form();
-});
-
-$("#patient_status").on("change", function(){
-  disable_hospital_choice($(this).val() === 'in_hospital')
-});
-
-$("#open_modal_add_patient").on("click", function(e){
-   if ($("#add_patients")[0].checkValidity() === false) {
-    e.stopPropagation();
-    $("#hiddenSubmit")[0].click()
-  } else {
-    var addCheckBody = document.getElementById("add_check_body")
-    addCheckBody.innerHTML = `<b>{{ _("ФИО") }}:</b> ` + $("#full_name").val() + `<br>`
-    addCheckBody.innerHTML += `<b>{{ _("Тип Въезда в Страну") }}:</b> ` + $("#travel_type option:selected").text() + `<br>`
-  }
-});
-
-function openCity(evt, cityName) {
-    // Declare all variables
-    var i, tabcontent, tablinks;
-
-    // Get all elements with class="tabcontent" and hide them
-    tabcontent = document.getElementsByClassName("tabcontent");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
+        $.post($("#add_patients").attr('action'), $("#add_patients").serialize() + '&create', function(res){
+            // Do something with the response `res`
+            if (res.patient_id !== undefined) {
+                $.notify({
+                    // options
+                    icon: 'fa fa-thumbs-up',
+                    message: `<a href="\patient_profile?id=${res.patient_id}">{{ _("Пациент") }}</a> {{ _("добавлен в базу данных") }}`
+                },{
+                    // settings
+                    type: 'info',
+                });
+                show_loader(false)
+                reset_add_patient_form()
+                $("#addPatientModal").modal('hide');
+            }
+        });
     }
 
-    // Get all elements with class="tablinks" and remove the class "active"
-    tablinks = document.getElementsByClassName("tablinks");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" btn-success", "");
-        tablinks[i].className = tablinks[i].className.replace(" btn-warning", "");
+    function reset_add_patient_form() {
+        var travel_type = $("#travel_type").val()
+        var backup_values = {}
+
+        if (travel_type === '{{c.flight_type[0]}}') {
+            backup_values["#flight_arrival_date"] = $("#flight_arrival_date").val()
+            backup_values["#flight_code_id"] = $("#flight_code_id").val()
+        } else {
+            backup_values["#arrival_date"] = $("#arrival_date").val()
+            var border_form_id = null
+
+            switch(travel_type) {
+                case '{{c.by_auto_type[0]}}':
+                    border_form_id = "#auto_border_id"
+                    break;
+                case '{{c.by_foot_type[0]}}':
+                    border_form_id = "#foot_border_id"
+                    break;
+                case '{{c.by_sea_type[0]}}':
+                    border_form_id = "#sea_border_id"
+                    break;
+            }
+
+            if (border_form_id) backup_values[border_form_id] = $(border_form_id).val()
+        }
+
+        $("#add_patients")[0].reset();
+
+        $("#travel_type").val(travel_type)
+
+        for (var key in backup_values) {
+            if (backup_values.hasOwnProperty(key)) {
+                $(key).val(backup_values[key])
+            }
+        }
     }
 
-    // var splitted = cityName.split("To")
-    var number = parseInt(cityName[cityName.length-1])
-    console.log(number, cityName);
-    // set active all elements before number incl.
-    for (i = 1; i < number; i++) {
-        var btnName = "Tab"+i+"Btn"
-        document.getElementById(btnName).className += " btn-success"
+    $("#add_patients").on("reset", function(){
+        $("#is_found-0").change()
+        $("#is_found-1").change()
+    });
+
+    $("#hospital_region_id").on("change", function(){
+        update_hospitals_list();
+    });
+
+    $("#hospital_type").on("change", function(){
+        update_hospitals_list();
+    });
+
+    $("#travel_type").on("change", function(){
+        update_travel_form();
+    });
+
+    $("#patient_status").on("change", function(){
+        disable_hospital_choice($(this).val() === 'in_hospital')
+    });
+
+    $("#open_modal_add_patient").on("click", function(e){
+        if ($("#add_patients")[0].checkValidity() === false) {
+            e.stopPropagation();
+            $("#hiddenSubmit")[0].click()
+        } else {
+            var addCheckBody = document.getElementById("add_check_body")
+            addCheckBody.innerHTML = `<b>{{ _("ФИО") }}:</b> ` + $("#full_name").val() + `<br>`
+            addCheckBody.innerHTML += `<b>{{ _("Тип Въезда в Страну") }}:</b> ` + $("#travel_type option:selected").text() + `<br>`
+        }
+    });
+
+    function openCity(evt, cityName) {
+        // Declare all variables
+        var i, tabcontent, tablinks;
+
+        // Get all elements with class="tabcontent" and hide them
+        tabcontent = document.getElementsByClassName("tabcontent");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+
+        // Get all elements with class="tablinks" and remove the class "active"
+        tablinks = document.getElementsByClassName("tablinks");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" btn-success", "");
+            tablinks[i].className = tablinks[i].className.replace(" btn-warning", "");
+        }
+
+        // var splitted = cityName.split("To")
+        var number = parseInt(cityName[cityName.length-1])
+        console.log(number, cityName);
+        // set active all elements before number incl.
+        for (i = 1; i < number; i++) {
+            var btnName = "Tab"+i+"Btn"
+            document.getElementById(btnName).className += " btn-success"
+        }
+        document.getElementById("Tab"+number+"Btn").className += " btn-warning"
+        // Show the current tab, and add an "active" class to the button that opened the tab
+        document.getElementById(cityName).style.display = "block";
     }
-    document.getElementById("Tab"+number+"Btn").className += " btn-warning"
-    // Show the current tab, and add an "active" class to the button that opened the tab
-    document.getElementById(cityName).style.display = "block";
-}
 
-function addFields(){
-    var container = document.getElementById("fieldsContainer");
-    var formGroup = document.createElement("div");
-    formGroup.className = "form-group"
+    function addFields(){
+        var container = document.getElementById("fieldsContainer");
+        var formGroup = document.createElement("div");
+        formGroup.className = "form-group"
 
-    var label = `<label class="form-control-label" for="basic-url">Поездка</label>`;
+        var label = `<label class="form-control-label" for="basic-url">Поездка</label>`;
 
-    const inputField = `
-    <div class="row">
-        <div class="col">
-            <div class="input-group">
-                <div class="input-group-prepend">
-                    <span class="input-group-text"><i class="ni ni-calendar-grid-58"></i></span>
+        const inputField = `
+        <div class="row">
+            <div class="col">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="ni ni-calendar-grid-58"></i></span>
+                    </div>
+                    <input class="form-control datepicker" placeholder="Select date" type="text" value="06/20/2020">
                 </div>
-                <input class="form-control datepicker" placeholder="Select date" type="text" value="06/20/2020">
-            </div>
-        </div>    
-        <div class="col">
-            <div class="input-group">
-                <input type="text" class="form-control" placeholder="Рейс" aria-label="Recipient's username with two button addons" aria-describedby="button-addon4">
-                <div class="input-group-append" id="button-addon4">
-                    <button class="btn btn-icon btn-success" type="button">
-                        <span class="btn-inner--icon"><i class="ni ni-check-bold"></i></span>
-                    </button>
-                    <button class="btn btn-icon btn-danger" onclick="removeElement(this)" type="button">
-                        <span class="btn-inner--icon"><i class="ni ni-fat-remove"></i></span>
-                    </button>
+            </div>    
+            <div class="col">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Рейс" aria-label="Recipient's username with two button addons" aria-describedby="button-addon4">
+                    <div class="input-group-append" id="button-addon4">
+                        <button class="btn btn-icon btn-success" type="button">
+                            <span class="btn-inner--icon"><i class="ni ni-check-bold"></i></span>
+                        </button>
+                        <button class="btn btn-icon btn-danger" onclick="removeElement(this)" type="button">
+                            <span class="btn-inner--icon"><i class="ni ni-fat-remove"></i></span>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>`;
-    formGroup.innerHTML += label;
-    formGroup.innerHTML += inputField;
+        </div>`;
+        formGroup.innerHTML += label;
+        formGroup.innerHTML += inputField;
 
-    container.appendChild(formGroup);
-    numberOfAddedFields++;
-}
+        container.appendChild(formGroup);
+        numberOfAddedFields++;
+    }
 
-function removeElement(el) {
-    el.parentNode.parentNode.parentNode.parentNode.parentNode.remove();
-}
-
+    function removeElement(el) {
+        el.parentNode.parentNode.parentNode.parentNode.parentNode.remove();
+    }
 </script>
 
 <style>
