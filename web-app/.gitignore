@@ -28,3 +28,5 @@ package-lock.json
 
 documents/*
 .env
+
+migrations/versions/*
