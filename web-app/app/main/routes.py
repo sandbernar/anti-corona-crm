@@ -14,9 +14,7 @@ import time
 import json
 from functools import wraps
 from flask import redirect, request, current_app
-import math
-from functools import lru_cache
-
+from math import *
 
 from app.main.patients.models import Patient, PatientStatus
 from app.main.models import Region, Infected_Country_Category, Address
@@ -30,6 +28,11 @@ from flask_babelex import _
 from sqlalchemy import exc
 
 import uuid
+import os
+from functools import lru_cache
+import math
+from sqlalchemy import text
+import geohash
 
 @blueprint.route('/index', methods=['GET'])
 @login_required
@@ -277,7 +280,6 @@ class Helper:
 
         print("map", self.w * self.h)
 
-from math import *
 
 
 def center_geolocation(geolocations):
@@ -306,7 +308,6 @@ def center_geolocation(geolocations):
 
     return (atan2(y, x) * 180 / pi, atan2(z, sqrt(x * x + y * y)) * 180 / pi)
 
-import geohash
 
 def is_geohash_in_bounding_box(current_geohash, bbox_coordinates):
     """Checks if the box of a geohash is inside the bounding box
@@ -417,21 +418,37 @@ def patients_within_tiles():
     
 
     hashes = compute_geohash_tiles((bbox_x1, bbox_y1, bbox_x2, bbox_y2), precision)
-
+    print(hashes)
+    print(len(hashes))
 
     coordinates_patients = {
         "type": "FeatureCollection",
         "features": []
     }
 
-    for h in hashes:
-        q = Patient.query.join(Address, Patient.home_address_id == Address.id).filter(Address.geohash.ilike(f'{h}%'))
-        if q:
-            c = q.count()
-        if c > 0:
+    # Connect to our PostgreSQL
+
+    # ppp = time.time()
+    for h in range(len(hashes)):
+        # c = Patient.query.join(Address, Patient.home_address_id == Address.id).filter(Address.geohash.ilike(f'{h}%')).count()
+        # start_time = time.time()
+        # c = Address.query.filter(Address.geohash.ilike(f'{hashes[h]}%')).count()
+        # c = Address.query.filter(Address.geohash.like(f'{hashes[h]}%')).count()
+
+        sql = text("""
+            SELECT SUM(1) FROM "Address" WHERE geohash LIKE '{0}%'
+        """.format(hashes[h]))
+        m = db.engine.execute(sql)
+        for a in m:
+            for z in a:
+                c = z
+        # print(c)
+        # process_time = time.time() - start_time
+        # print("sql query time", process_time)
+        # w = time.time()
+        if c:
             # print(q.count())
-            c = q.count()
-            lat, lon = geohash.decode(h)
+            lat, lon = geohash.decode(hashes[h])
             coordinates_patients["features"].append(
                 {
                     "type": 'Cluster',
@@ -449,7 +466,11 @@ def patients_within_tiles():
                     }
                 }
             )
-
+        # process_time = time.time() - w
+        # print("append time", process_time)
+        
+    # process_time = time.time() - ppp
+    # print("loop time", process_time)
     # Post.query.filter(Post.title.ilike(f'%{some_phrase}%'))
 
     # [17, 18] precision 8
