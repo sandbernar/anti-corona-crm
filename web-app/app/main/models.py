@@ -183,6 +183,8 @@ class Address(db.Model):
 
     lat = Column(Float, nullable=True, default = None)
     lng = Column(Float, nullable=True, default = None)
+
+    geohash = Column(String, nullable=True, default = "")
     
     def __init__(self, **kwargs):
         set_props(self, kwargs)

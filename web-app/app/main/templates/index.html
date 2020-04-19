@@ -194,8 +194,8 @@ function init() {
   var myMap = new ymaps.Map(
     "map",
     {
-      center: [47.1605, 71.4704],
-      zoom: 4,
+      center: [51.48278022207821, 68.90625],
+      zoom: 8,
       controls: ["zoomControl"],
     },
     {
@@ -203,10 +203,10 @@ function init() {
     }
   );
 
-  var objectManager = new ymaps.LoadingObjectManager(
-    window.location.origin+"/patients_within_tiles?bbox=%b&clusterize=1&zoom=%z&tiles=%t",
+  var objectManager = new ymaps.RemoteObjectManager(
+    window.location.origin+"/patients_within_tiles?bbox=%b&zoom=%z&tiles=%t",
     {
-      clusterize: true,
+    //   clusterize: true,
       geoObjectOpenBalloonOnClick: true,
       geoObjectOpenEmptyBalloon: true,
     //   splitRequests: true,
@@ -215,6 +215,9 @@ function init() {
 
   myMap.geoObjects.add(objectManager);
 
+//   objectManager.objects.removeAll();
+
+//   map.geoObjects.remove(objectManager); 
   objectManager.objects.events.add("click", function (e) {
     // Получим объект, на котором открылся балун.
     var id = e.get("objectId"),

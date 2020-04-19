@@ -10,7 +10,7 @@ class Status(BaseModel):
     class Config:
         orm_mode = True
 
-class Adress(BaseModel):
+class Address(BaseModel):
     city: str
     street: str
     house: str
@@ -35,7 +35,7 @@ class PatientByPassNum(BaseModel):
 
 class Patient(BaseModel):
     status: Status
-    home_address: Adress
+    home_address: Address
     hospital: Hospital = None
     iin: str
     pass_num: str

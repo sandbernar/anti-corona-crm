@@ -29,6 +29,7 @@ import requests
 from flask_babelex import _
 from sqlalchemy import exc
 
+import uuid
 
 @blueprint.route('/index', methods=['GET'])
 @login_required
@@ -156,20 +157,6 @@ def support_jsonp(f):
     return decorated_function
 
 
-# def deg2num(lat_deg, lon_deg, zoom):
-#     lat_rad = math.radians(lat_deg)
-#     n = 2.0 ** zoom
-#     xtile = int((lon_deg + 180.0) / 360.0 * n)
-#     ytile = int((1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n)
-#     return (xtile, ytile)
-
-# def num2deg(xtile, ytile, zoom):
-#     n = 2.0 ** zoom
-#     lon_deg = xtile / n * 360.0 - 180.0
-#     lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / n)))
-#     lat_deg = math.degrees(lat_rad)
-#     return (lat_deg, lon_deg)
-
 @blueprint.route("/patients_content_by_id", methods=['POST'])
 def patients_content_by_id():
     if not current_user.is_authenticated:
@@ -220,18 +207,439 @@ def getR(bbox_x1, bbox_y1, bbox_x2, bbox_y2, ttl_hash=None):
     return r
 
 
+"""
+ObjectLoadingManager solution
+"""
+# @blueprint.route("/patients_within_tiles")
+# @login_required
+# @support_jsonp
+# def patients_within_tiles():
+#     if not current_user.is_authenticated:
+#         return redirect(url_for('login_blueprint.login'))
+#     if not "bbox" in request.args:
+#         return render_template('errors/error-400.html'), 400
+#     latlng = request.args["bbox"].split(',')
+#     bbox_x1 = float(latlng[0])
+#     bbox_y1 = float(latlng[1])
+#     bbox_x2 = float(latlng[2])
+#     bbox_y2 = float(latlng[3])
+#     r = getR(bbox_x1, bbox_y1, bbox_x2, bbox_y2, ttl_hash=get_ttl_hash())
+#     return r
+
+Address.bounds = classmethod(lambda s: (s.lat, s.lng))
+
+
+def is_bound(lat, lng, xMin, yMin, xMax, yMax):
+    a = (lng - yMax) * (lng - yMin) < 0
+    b = (lat - xMax) * (lng - xMin) < 0
+    return a and b
+# meta.Session.query(User).filter(calc_distance(User.coords(), (my_lat, my_long)) < 5
+
+
+def deg2num(lat_deg, lon_deg, zoom):
+    lat_rad = math.radians(lat_deg)
+    n = 2.0 ** zoom
+    xtile = int((lon_deg + 180.0) / 360.0 * n)
+    ytile = int((1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n)
+    return (xtile, ytile)
+
+
+def num2deg(xtile, ytile, zoom):
+    n = 2.0 ** zoom
+    lon_deg = xtile / n * 360.0 - 180.0
+    lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / n)))
+    lat_deg = math.degrees(lat_rad)
+    return (lat_deg, lon_deg)
+
+
+class Point:
+    def __init__(self, x, y, zoom):
+        self.x = x
+        self.y = y
+        self.x_tile, self.y_tile = deg2num(self.x, self.y, zoom)
+
+    def convert_to_deg(self, zoom):
+        pass
+
+
+class Helper:
+    def __init__(self, x1, y1, x2, y2, zoom):
+        self.zoom = zoom
+
+        self.bbox_sw = Point(x1, y1, self.zoom)
+        self.bbox_ne = Point(x2, y2, self.zoom)
+
+        self.bbox_nw = Point(x2, y1, self.zoom)
+        self.bbox_se = Point(x1, y2, self.zoom)
+
+        self.w = self.bbox_se.x_tile - self.bbox_nw.x_tile + 1
+        self.h = self.bbox_se.y_tile - self.bbox_nw.y_tile + 1
+
+        print("map", self.w * self.h)
+
+from math import *
+
+
+def center_geolocation(geolocations):
+    """
+    Provide a relatively accurate center lat, lon returned as a list pair, given
+    a list of list pairs.
+    ex: in: geolocations = ((lat1,lon1), (lat2,lon2),)
+        out: (center_lat, center_lon)
+    """
+
+
+    x = 0
+    y = 0
+    z = 0
+
+    for lat, lon in geolocations:
+        lat = float(lat) * pi / 180
+        lon = float(lon) * pi / 180
+        x += cos(lat) * cos(lon)
+        y += cos(lat) * sin(lon)
+        z += sin(lat)
+
+    x = float(x / len(geolocations))
+    y = float(y / len(geolocations))
+    z = float(z / len(geolocations))
+
+    return (atan2(y, x) * 180 / pi, atan2(z, sqrt(x * x + y * y)) * 180 / pi)
+
+import geohash
+
+def is_geohash_in_bounding_box(current_geohash, bbox_coordinates):
+    """Checks if the box of a geohash is inside the bounding box
+
+    :param current_geohash: a geohash
+    :param bbox_coordinates: bounding box coordinates
+    :return: true if the the center of the geohash is in the bounding box
+    """
+
+    coordinates = geohash.decode(current_geohash)
+    # print(coordinates)
+    # print(bbox_coordinates)
+    geohash_in_bounding_box = (bbox_coordinates[0] <= coordinates[0] <= bbox_coordinates[2]) and (
+            bbox_coordinates[1] <= coordinates[1] <= bbox_coordinates[3])
+    return geohash_in_bounding_box
+
+def build_geohash_box(current_geohash):
+    """Returns a GeoJSON Polygon for a given geohash
+
+    :param current_geohash: a geohash
+    :return: a list representation of th polygon
+    """
+
+    b = geohash.bbox(current_geohash)
+    polygon = [(b['w'], b['s']), (b['w'], b['n']), (b['e'], b['n']), (b['e'], b['s'],), (b['w'], b['s'])]
+    return polygon
+
+def compute_geohash_tiles(bbox_coordinates, precision):
+    """Computes all geohash tile in the given bounding box
+
+    :param bbox_coordinates: the bounding box coordinates of the geohashes
+    :return: a list of geohashes
+    """
+
+    checked_geohashes = set()
+    geohash_stack = set()
+    geohashes = []
+    # get center of bounding box, assuming the earth is flat ;)
+    center_latitude = (bbox_coordinates[0] + bbox_coordinates[2]) / 2
+    center_longitude = (bbox_coordinates[1] + bbox_coordinates[3]) / 2
+
+    # print()
+    center_geohash = geohash.encode(center_latitude, center_longitude, precision=precision)
+    geohashes.append(center_geohash)
+    geohash_stack.add(center_geohash)
+    checked_geohashes.add(center_geohash)
+    while len(geohash_stack) > 0:
+        current_geohash = geohash_stack.pop()
+        neighbors = geohash.neighbors(current_geohash)
+        # print("n", neighbors)
+        for neighbor in neighbors:
+            if neighbor not in checked_geohashes and is_geohash_in_bounding_box(neighbor, bbox_coordinates):
+                geohashes.append(neighbor)
+                geohash_stack.add(neighbor)
+                checked_geohashes.add(neighbor)
+    return geohashes
+
+# a = compute_geohash_tiles((51.13465311335619, 71.33693818721773, 51.16855323117143, 71.40929345760347))
+
+# 4 0 0 4
+# 0 0 4 4
+# se x1 se y1 nw x2 nw y2
+# sw x2 y1 x1 y2
+# 51.16855323117143,71.33693818721773, 51.13465311335619,71.40929345760347
+# 51.13465311335619, 71.33693818721773, 51.16855323117143, 71.40929345760347
+# 51.13465311335619, 71.33693818721773, 51.16855323117143, 71.40929345760347
+
+"""
+RemoteObjectManager solution
+"""
 @blueprint.route("/patients_within_tiles")
 @login_required
 @support_jsonp
 def patients_within_tiles():
     if not current_user.is_authenticated:
         return redirect(url_for('login_blueprint.login'))
-    if not "bbox" in request.args:
+    if not "bbox" in request.args or not "zoom" in request.args:
         return render_template('errors/error-400.html'), 400
     latlng = request.args["bbox"].split(',')
     bbox_x1 = float(latlng[0])
     bbox_y1 = float(latlng[1])
     bbox_x2 = float(latlng[2])
     bbox_y2 = float(latlng[3])
-    r = getR(bbox_x1, bbox_y1, bbox_x2, bbox_y2, ttl_hash=get_ttl_hash())
-    return r
+
+    """
+    bbox_x1, bbox_y1 == sw geohash
+    bbox_x2, bbox_y2 == ne geohash
+    precision == table
+    """
+
+    zoom = int(request.args["zoom"])
+
+    precision = 2
+    if zoom >= 17:
+        precision = 8
+    elif zoom >= 15:
+        precision = 7
+    elif zoom >= 13:
+        precision = 6
+    elif zoom >= 11:
+        precision = 5
+    elif zoom >= 8:
+        precision = 4
+    elif zoom >= 6:
+        precision = 3
+    elif zoom >= 3:
+        precision = 2
+    
+
+    hashes = compute_geohash_tiles((bbox_x1, bbox_y1, bbox_x2, bbox_y2), precision)
+
+
+    coordinates_patients = {
+        "type": "FeatureCollection",
+        "features": []
+    }
+
+    for h in hashes:
+        q = Patient.query.join(Address, Patient.home_address_id == Address.id).filter(Address.geohash.ilike(f'{h}%'))
+        if q:
+            c = q.count()
+        if c > 0:
+            # print(q.count())
+            c = q.count()
+            lat, lon = geohash.decode(h)
+            coordinates_patients["features"].append(
+                {
+                    "type": 'Cluster',
+                    "id": uuid.uuid1(),
+                    # "bbox": [[bbox_x1, bbox_y1], [bbox_x2, bbox_y2]],
+                    "number": c,
+                    "geometry": {
+                        "type": 'Point',
+                        "coordinates": [lat, lon]
+                    },
+                    "properties": {
+                        "balloonContent": "идет загрузка...",
+                        "clusterCaption": "идет загрузка...",
+                        "iconContent": c,
+                    }
+                }
+            )
+
+    # Post.query.filter(Post.title.ilike(f'%{some_phrase}%'))
+
+    # [17, 18] precision 8
+#     [15,16] precision 7
+# [13,14] precision 6
+# [11, 12] precision 5
+# [8, 10] precision 4
+# [6, 7] precision 3
+# [3, 5] precision 2
+
+    # zoom = 9
+
+    # helper = Helper(bbox_x1, bbox_y1, bbox_x2, bbox_y2, zoom)
+
+    """
+    получаю sw ne, sw < ne
+
+    нужно сразу конвертнуть в nw sw
+    """
+
+    # tiles = request.args["tiles"].split(',')
+    # xMin = int(tiles[0])
+    # yMin = int(tiles[1])
+    # xMax = int(tiles[2])
+    # yMax = int(tiles[3])
+
+
+    # z = 0
+    # xMinI = xMin
+    # yMinI = yMin
+
+
+    # for current_y in range(helper.h):
+    #     for current_x in range(helper.w):
+    #         a = helper.bbox_nw.x_tile + current_x
+    #         b = helper.bbox_nw.y_tile + current_y
+    #         c = helper.bbox_nw.x_tile + current_x + 1
+    #         d = helper.bbox_nw.y_tile + current_y + 1
+    #         x1, y1 = num2deg(a, b, zoom)
+    #         x2, y2 = num2deg(c, d, zoom)
+    #         q = Patient.query.join(Address, Patient.home_address_id == Address.id).filter(Address.lng != None).filter(
+    #             Address.lat >= x2).filter(Address.lat <= x1).filter(Address.lng >= y1).filter(Address.lng <= y2)
+
+            # q = Patient.query
+            # print(q[0].lat)
+            # lat, lng = 0
+            # if q is not None:
+            #     for i in q:
+            #         lat = i.home_address.lat
+            #         lng = i.home_address.lng
+            #         break
+            #     print("count", lat, lng)
+
+# deg2num(51.16681,71.41296,4)
+# const lng = (lnglat[0] - bounds['_ne']['lng']) * (lnglat[0] - bounds['_sw']['lng']) < 0;
+#     const lat = (lnglat[1] - bounds['_ne']['lat']) * (lnglat[1] - bounds['_sw']['lat']) < 0;
+#     return lng && lat;
+
+# (lng - yMaxLng) * (lng - yMinLng) < 0
+# (lat - xMaxLat) * (lng - xMatLng) < 0
+            # print("first", q.first())
+
+
+            # c = q.count()
+            # if c > 0:
+            #     latlon = center_geolocation(((x2, y1), (x1, y2)))
+            #     print(c)
+            #     p = q.first()
+            #     coordinates_patients["features"].append(
+            #         {
+            #             "type": 'Cluster',
+            #             "id": uuid.uuid1(),
+            #             # "bbox": [[bbox_x1, bbox_y1], [bbox_x2, bbox_y2]],
+            #             "number": c,
+            #             "geometry": {
+            #                 "type": 'Point',
+            #                 "coordinates": [latlon[1], latlon[0]]
+            #             },
+            #             "properties": {
+            #                 "balloonContent": "идет загрузка...",
+            #                 "clusterCaption": "идет загрузка...",
+            #                 "iconContent": c,
+            #             }
+            #         }
+            #     )
+            #     z += 1
+
+    """
+    для каждого tile расчитать его lat lng относительно зума
+    для каждого получить количество
+    установить точку на середину этого тайла
+    """
+    # q = Patient.query.join(Address, Patient.home_address_id == Address.id).filter(Address.lng != None).filter(Address.lat >= bbox_x1).filter(
+    #     Address.lat <= bbox_x2).filter(Address.lng >= bbox_y1).filter(Address.lng <= bbox_y2)
+
+    # for p in q:
+    #     xPatient, yPatinent = deg2num(p.home_address.lat, p.home_address.lng, zoom)
+    #     t = (xPatient - xMin) * x + (yPatinent - yMin)
+    #     if t < 0 or t >= len(coordinates_patients["features"]):
+    #         continue
+    #     coordinates_patients["features"][t]["geometry"]["coordinates"][0] = p.home_address.lat
+    #     coordinates_patients["features"][t]["geometry"]["coordinates"][1] = p.home_address.lng
+    #     coordinates_patients["features"][t]["number"] += 1
+    #     coordinates_patients["features"][t]["properties"]["iconContent"] += 1
+
+    return jsonify(coordinates_patients)
+
+ # worldwide tiles
+    # tiles = request.args["tiles"].split(',')
+    # xMin = int(tiles[0])
+    # yMin = int(tiles[1])
+    # xMax = int(tiles[2])
+    # yMax = int(tiles[3])
+
+    # zoom = int(request.args["zoom"])
+
+    # coordinates_patients = {
+    #     "type": "FeatureCollection",
+    #     "features": []
+    # }
+
+    # tiles x1, y1, x2, y2
+    # x = xMax - xMin + 1
+    # y = yMax - yMin + 1
+
+    # z = 0
+    # for i in range(x):
+    #     for v in range(y):
+    #         coordinates_patients["features"].append(
+    #             {
+    #                 "type": 'Cluster',
+    #                 "id": z,
+    #                 # "bbox": [[2, yMin], [bbox_x2, bbox_y2]],
+    #                 "number": 0,
+    #                 "geometry": {
+    #                     "type": 'Point',
+    #                     "coordinates": [0, 0]
+    #                 },
+    #                 "properties": {
+    #                     "iconContent": 0
+    #                 }
+    #             }
+    #         )
+    #         z += 1
+
+    """
+    for each patient get tiles => get x y tiles
+        tile = (x - xMin + 1) * (yMin - 1)
+        tiles[tile]["geometry"] = cords
+        tiles[tile]["number"] += 1
+        id = i
+    """
+    # start_time = time.time()
+
+    # process_time = time.time() - start_time
+    # print("sql query time", process_time)
+
+    # q = Patient.query.join(Address, Patient.home_address_id == Address.id).filter(Address.lng != None).filter(Address.lat >= bbox_x1).filter(
+    #     Address.lat <= bbox_x2).filter(Address.lng >= bbox_y1).filter(Address.lng <= bbox_y2)
+    # start_time = time.time()
+    # for p in q:
+    #     color = "green"
+    #     if p.is_infected == True:
+    #         color = "red"
+
+    #     coordinates_patients["features"].append(
+    #         {
+    #             "type": "Feature",
+    #             "id": p.id,
+    #             "geometry": {"type": "Point", "coordinates": [p.home_address.lat, p.home_address.lng]},
+    #             "properties": {
+    #                 "balloonContent": "идет загрузка...",
+    #                 "clusterCaption": "идет загрузка...",
+    #                 # "hintContent": "Текст подсказки"
+    #             },
+    #             "options": {
+    #                 "preset": "islands#icon",
+    #                 "iconColor": color
+    #             }
+    #         }
+    #     )
+    # xPatient, yPatinent = deg2num(p.home_address.lat, p.home_address.lng, zoom)
+    # if xPatient >= xMin and yPatinent >= yMin and xPatient <= xMax and yPatinent <= yMax:
+    #     t = (xPatient - xMin) * x + (yPatinent - yMin)
+    #     print(t, xPatient, yPatinent, xMin, xMax, yMin, yMax)
+    #     if t < 0 or t >= len(coordinates_patients["features"]):
+    #         continue
+    #     coordinates_patients["features"][t]["geometry"]["coordinates"][0] = p.home_address.lat
+    #     coordinates_patients["features"][t]["geometry"]["coordinates"][1] = p.home_address.lng
+    #     coordinates_patients["features"][t]["number"] += 1
+    #     coordinates_patients["features"][t]["properties"]["iconContent"] += 1
+    # process_time = time.time() - start_time
+    # print("loop", process_time, len(coordinates_patients["features"]))

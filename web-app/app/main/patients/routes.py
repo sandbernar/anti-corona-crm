@@ -35,6 +35,7 @@ import math, json, re, itertools
 import nltk
 import dateutil.parser
 import requests
+import geohash
 
 from multiprocessing.pool import ThreadPool as threadpool
 from app.main.util import get_regions, get_regions_choices, get_flight_code, populate_form
@@ -160,7 +161,9 @@ def process_address(request_dict, form_prefix='home', lat_lng = True, address = 
 
     if lat_lng:
         lat_lng = get_lat_lng([address])[0]
-
+        
+        geo_hash = geohash.encode(lat_lng[0], lat_lng[1])
+        address.geohash = geo_hash
         address.lat = lat_lng[0]
         address.lng = lat_lng[1]
 

@@ -18,3 +18,4 @@ xlsxwriter
 names
 geonamescache
 pycountry
+python-geohash
