@@ -30,6 +30,11 @@ from flask_babelex import _
 from sqlalchemy import exc
 
 
+import math
+from sqlalchemy import text
+import geohash
+import uuid
+
 @blueprint.route('/index', methods=['GET'])
 @login_required
 def index():
@@ -206,19 +211,57 @@ def patients_content_by_id():
 
     return jsonify(response)
 
+def is_geohash_in_bounding_box(current_geohash, bbox_coordinates):
+    """Checks if the box of a geohash is inside the bounding box
 
-def get_ttl_hash(seconds=3600):
-    """Return the same value withing `seconds` time period"""
-    return round(time.time() / seconds)
+    :param current_geohash: a geohash
+    :param bbox_coordinates: bounding box coordinates
+    :return: true if the the center of the geohash is in the bounding box
+    """
 
+    coordinates = geohash.decode(current_geohash)
+    geohash_in_bounding_box = (bbox_coordinates[0] <= coordinates[0] <= bbox_coordinates[2]) and (
+            bbox_coordinates[1] <= coordinates[1] <= bbox_coordinates[3])
+    return geohash_in_bounding_box
 
-@lru_cache()
-def getR(bbox_x1, bbox_y1, bbox_x2, bbox_y2, ttl_hash=None):
-    del ttl_hash
-    r = jsonify(type="FeatureCollection", features=[i.serialize for i in Patient.query.join(Address, Patient.home_address_id == Address.id).filter(Address.lng != None).filter(Address.lat >= bbox_x1).filter(
-        Address.lat <= bbox_x2).filter(Address.lng >= bbox_y1).filter(Address.lng <= bbox_y2)])
-    return r
+def compute_geohash_tiles(bbox_coordinates, precision):
+    """Computes all geohash tile in the given bounding box
 
+    :param bbox_coordinates: the bounding box coordinates of the geohashes
+    :return: a list of geohashes
+    """
+
+    checked_geohashes = set()
+    geohash_stack = set()
+    geohashes = []
+    center_latitude = (bbox_coordinates[0] + bbox_coordinates[2]) / 2
+    center_longitude = (bbox_coordinates[1] + bbox_coordinates[3]) / 2
+
+    center_geohash = geohash.encode(center_latitude, center_longitude, precision=precision)
+    geohashes.append(center_geohash)
+    geohash_stack.add(center_geohash)
+    checked_geohashes.add(center_geohash)
+    while len(geohash_stack) > 0:
+        current_geohash = geohash_stack.pop()
+        neighbors = geohash.neighbors(current_geohash)
+        for neighbor in neighbors:
+            if neighbor not in checked_geohashes and is_geohash_in_bounding_box(neighbor, bbox_coordinates):
+                geohashes.append(neighbor)
+                geohash_stack.add(neighbor)
+                checked_geohashes.add(neighbor)
+    return geohashes
+
+def support_jsonp(f):
+    """Wraps JSONified output for JSONP"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        callback = request.args.get('callback', False)
+        if callback:
+            content = str(callback) + '(' + str(f().data.decode("utf-8")) + ')'
+            return current_app.response_class(content, mimetype='application/json')
+        else:
+            return f(*args, **kwargs)
+    return decorated_function
 
 @blueprint.route("/patients_within_tiles")
 @login_required
@@ -226,12 +269,63 @@ def getR(bbox_x1, bbox_y1, bbox_x2, bbox_y2, ttl_hash=None):
 def patients_within_tiles():
     if not current_user.is_authenticated:
         return redirect(url_for('login_blueprint.login'))
-    if not "bbox" in request.args:
+    if not "bbox" in request.args or not "zoom" in request.args:
         return render_template('errors/error-400.html'), 400
     latlng = request.args["bbox"].split(',')
     bbox_x1 = float(latlng[0])
     bbox_y1 = float(latlng[1])
     bbox_x2 = float(latlng[2])
     bbox_y2 = float(latlng[3])
-    r = getR(bbox_x1, bbox_y1, bbox_x2, bbox_y2, ttl_hash=get_ttl_hash())
-    return r
+
+    zoom = int(request.args["zoom"])
+
+    precision = 2
+    if zoom >= 17:
+        precision = 8
+    elif zoom >= 15:
+        precision = 7
+    elif zoom >= 13:
+        precision = 6
+    elif zoom >= 11:
+        precision = 5
+    elif zoom >= 8:
+        precision = 4
+    elif zoom >= 6:
+        precision = 3
+    elif zoom >= 3:
+        precision = 2
+    
+    hashes = compute_geohash_tiles((bbox_x1, bbox_y1, bbox_x2, bbox_y2), precision)
+
+    coordinates_patients = {
+        "type": "FeatureCollection",
+        "features": []
+    }
+
+    for h in range(len(hashes)):
+        sql = text("""
+            SELECT SUM(1) FROM "Address" WHERE geohash LIKE '{0}%'
+        """.format(hashes[h]))
+        m = db.engine.execute(sql)
+        for a in m:
+            for z in a:
+                c = z
+        if c:
+            lat, lon = geohash.decode(hashes[h])
+            coordinates_patients["features"].append(
+                {
+                    "type": 'Cluster',
+                    "id": uuid.uuid1(),
+                    "number": c,
+                    "geometry": {
+                        "type": 'Point',
+                        "coordinates": [lat, lon]
+                    },
+                    "properties": {
+                        "balloonContent": "идет загрузка...",
+                        "clusterCaption": "идет загрузка...",
+                        "iconContent": c,
+                    }
+                }
+            )
+    return jsonify(coordinates_patients)

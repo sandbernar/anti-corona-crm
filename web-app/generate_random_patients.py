@@ -8,6 +8,7 @@ import psycopg2
 import names
 import pycountry
 import geonamescache
+import geohash
 
 class Main:
     def __setattr__(self, name, value):
@@ -147,6 +148,7 @@ for i in range(int(args['number'])):
     address.city = toPoint['name'] + f"{additionalLat} {additionalLon}"
     address.lat = toPoint['latitude'] + float(additionalLat)/1000
     address.lng = toPoint['longitude'] + float(additionalLon)/1000
+    address.geohash = geohash.encode(toPoint['latitude'], toPoint['longitude'])
     address.insert()
     patient.home_address_id = address.id
     patient.insert()

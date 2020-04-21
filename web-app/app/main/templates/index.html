@@ -195,7 +195,7 @@ function init() {
     "map",
     {
       center: [47.1605, 71.4704],
-      zoom: 4,
+      zoom: 6,
       controls: ["zoomControl"],
     },
     {
@@ -203,10 +203,9 @@ function init() {
     }
   );
 
-  var objectManager = new ymaps.LoadingObjectManager(
+  var objectManager = new ymaps.RemoteObjectManager(
     window.location.origin+"/patients_within_tiles?bbox=%b&clusterize=1&zoom=%z&tiles=%t",
     {
-      clusterize: true,
       geoObjectOpenBalloonOnClick: true,
       geoObjectOpenEmptyBalloon: true,
     //   splitRequests: true,
