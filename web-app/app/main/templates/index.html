@@ -49,6 +49,10 @@
                       <div class="card-header bg-transparent">
             <div class="row align-items-center">
               <div class="col">
+                  <div>
+                      Current zoom:
+                      <div id="zoom">0</div>
+                  </div>
                 <h2 class="mb-0">{{ _('Карта Пациентов') }}</h2>
               </div>
             </div>
@@ -203,51 +207,72 @@ function init() {
     }
   );
 
-  var objectManager = new ymaps.RemoteObjectManager(
-    window.location.origin+"/patients_within_tiles?bbox=%b&zoom=%z&tiles=%t",
+  var remoteObjectManager = new ymaps.RemoteObjectManager(
+    window.location.origin + "/patients_within_tiles?bbox=%b&zoom=%z&tiles=%t",
     {
-    //   clusterize: true,
-      geoObjectOpenBalloonOnClick: true,
-      geoObjectOpenEmptyBalloon: true,
-    //   splitRequests: true,
+        clusterMaxZoom: 19,
     }
   );
+  
+  remoteObjectManager.clusters.events.add('click', function (e) {
+    var objectId = e.get('objectId');
+    var geoObject = remoteObjectManager.clusters.getById(objectId);
+    let zoom = myMap.getZoom() >= 19 ? myMap.getZoom() : myMap.getZoom() + 1;
+    let zo = document.querySelector("#zoom");
+    zo.innerHTML = zoom;
+    myMap.setCenter(geoObject.geometry.coordinates,  zoom);
+  });
+  // Подписываемся на событие добавления объекта в менеджер.
+  myMap.geoObjects.add(remoteObjectManager);
 
-  myMap.geoObjects.add(objectManager);
-
-//   objectManager.objects.removeAll();
-
-//   map.geoObjects.remove(objectManager); 
-  objectManager.objects.events.add("click", function (e) {
-    // Получим объект, на котором открылся балун.
-    var id = e.get("objectId"),
-      geoObject = objectManager.objects.getById(id);
-    // Загрузим данные для объекта при необходимости.
-    downloadContent([geoObject], id);
+  remoteObjectManager.objects.events.add('click', function (e) {
+    var objectId = e.get('objectId');
+    var geoObject = remoteObjectManager.objects.getById(objectId);
+    myMap.setCenter(geoObject.geometry.coordinates, 19)
+      .then(function () {
+        downloadContent([geoObject], objectId);
+        remoteObjectManager.objects.balloon.open(id);
+      })
   });
 
-  objectManager.clusters.events.add("balloonopen", function (e) {
-    // Получим id кластера, на котором открылся балун.
-    var id = e.get("objectId"),
-      // Получим геообъекты внутри кластера.
-      cluster = objectManager.clusters.getById(id),
-      geoObjects = cluster.properties.geoObjects;
 
-    // Загрузим данные для объектов при необходимости.
-    downloadContent(geoObjects, id, true);
-  });
+  // Назначаем обработчик событий на коллекцию объектов менеджера.
+//   remoteObjectManager.objects.events.add(["click"], onObjectEvent);
+
+//   remoteObjectManager.objects.events.add('balloonopen', function (e) {
+//     // Получим объект, на котором открылся балун.
+//     let id = e.get('objectId'),
+//     geoObject = remoteObjectManager.objects.getById(id);
+//     // Загрузим данные для объекта при необходимости.
+//     downloadContent([geoObject], id);
+//   });
+
+  remoteObjectManager.clusters.events.add('balloonopen', function (e) {
+        // Получим id кластера, на котором открылся балун.
+        console.log("Hello");
+        console.log(e);
+        var id = e.get('objectId'),
+        // Получим геообъекты внутри кластера.
+        cluster = objectManager.clusters.getById(id),
+        geoObjects = cluster.properties.geoObjects;
+
+        // Загрузим данные для объектов при необходимости.
+        downloadContent(geoObjects, id, true);
+    });
+
 
   function downloadContent(geoObjects, id, isCluster) {
     // Создадим массив меток, для которых данные ещё не загружены.
-    ids = geoObjects.map(function (geoObject) {
-      return geoObject.id;
+    latLon = geoObjects.map(function (geoObject) {
+      return geoObject.geometry.coordinates;
     });
-    if (ids.length) {
+    console.log(geoObjects);
+    if (latLon.length) {
       // Сервер обработает массив идентификаторов и на его основе
       // вернет JSON-объект, содержащий текст балуна для
       // заданных меток.
       a = {
-        ids: ids,
+        lat_lon: latLon,
       };
       var csrf_token = "{{ csrf_token() }}";
 
@@ -266,7 +291,7 @@ function init() {
             contentType: "application/json",
             type: "POST",
             data: JSON.stringify(a),
-            url: window.location.origin+"/patients_content_by_id",
+            url: window.location.origin + "/patients_content_by_id",
             dataType: "json",
             processData: false,
             credentials: true,
@@ -279,12 +304,11 @@ function init() {
               // Сервер возвращает массив объектов вида:
               // [ {"balloonContent": "Содержимое балуна"}, ...]
               for (let i = 0; i < data.length; i++) {
-                if (geoObject.id === data[i].id) {
                   geoObject.properties.balloonContent = data[i].balloonContent;
                   geoObject.properties.clusterCaption = data[i].clusterCaption;
                   break;
-                }
               }
+              console.log("props", geoObject.properties);
             });
             // Оповещаем балун, что нужно применить новые данные.
             setNewData();
@@ -300,18 +324,21 @@ function init() {
     }
 
     function setNewData() {
-      if (isCluster && objectManager.clusters.balloon.isOpen(id)) {
-        objectManager.clusters.balloon.setData(
-          objectManager.clusters.balloon.getData()
+        console.log("data recieved");
+      if (isCluster && remoteObjectManager.clusters.balloon.isOpen(id)) {
+        remoteObjectManager.clusters.balloon.setData(
+            remoteObjectManager.clusters.balloon.getData()
         );
-      } else if (objectManager.objects.balloon.isOpen(id)) {
-        objectManager.objects.balloon.setData(
-          objectManager.objects.balloon.getData()
+
+      } else {
+        remoteObjectManager.objects.balloon.setData(
+          remoteObjectManager.objects.balloon.getData()
         );
       }
     }
   }
 }
+
 
 
 colors = ["#3e95cd", "#8e5ea2", "#3cba9f", "#e8c3b9", "#b8860b", "#c45850", "#ff4500", "#f00f30", "#0000cd", 

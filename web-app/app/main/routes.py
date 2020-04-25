@@ -164,35 +164,37 @@ def support_jsonp(f):
 def patients_content_by_id():
     if not current_user.is_authenticated:
         return redirect(url_for('login_blueprint.login'))
-    ids = request.get_json()
-    if not "ids" in ids:
+    req = request.get_json()
+    if not "lat_lon" in req:
         return render_template('errors/error-400.html'), 400
-
-    ids = ids["ids"]
+    print("lat lon", req["lat_lon"][0])
+    lat_lon = req["lat_lon"][0]
 
     q = Patient.query
 
     response = []
 
-    for i in ids:
-        p = None
-        try:
-            p = q.filter_by(id=i).first()
-        except exc.SQLAlchemyError:
-            return render_template('errors/error-400.html'), 400
-        if not p:
-            continue
-        is_found = "Нет"
-        is_infected = "Нет"
-        if p.is_found:
-            is_found = "Да"
-        if p.is_infected:
-            is_infected = "Да"
-        response.append({
-            "id": i,
-            "balloonContent": '<a href="/patient_profile?id=' + str(p.id) + '">' + repr(p) + '</a><br><strong>Регион</strong>:' + repr(p.region) + '<br><strong>Адрес</strong>: ' + repr(p.home_address) + '<br><strong>Найден</strong>: ' + is_found + '<br><strong>Инфицирован</strong>: ' + is_infected + '<br><strong>Статус</strong>:' + p.status.name + '<br>',
-            "clusterCaption": repr(p)
-        })
+    p = None
+    try:
+        p = q.join(Address, Patient.home_address_id == Address.id).filter(Address.lat == str(lat_lon[0])).filter(Address.lng == str(lat_lon[1])).first()
+    except exc.SQLAlchemyError as err:
+        print(err)
+        return render_template('errors/error-400.html'), 400
+    if not p:
+        return jsonify({})
+    print(p)
+    is_found = "Нет"
+    is_infected = "Нет"
+    if p.is_found:
+        is_found = "Да"
+    if p.is_infected:
+        is_infected = "Да"
+    response.append({
+        "id": uuid.uuid1(),
+        "balloonContent": '<a href="/patient_profile?id=' + str(p.id) + '">' + 'test' + '</a>',
+        # "balloonContent": '<a href="/patient_profile?id=' + str(p.id) + '">' + repr(p) + '</a><br><strong>Регион</strong>:' + repr(p.region) + '<br><strong>Адрес</strong>: ' + repr(p.home_address) + '<br><strong>Найден</strong>: ' + is_found + '<br><strong>Инфицирован</strong>: ' + is_infected + '<br><strong>Статус</strong>:' + p.status.name + '<br>',
+        "clusterCaption": repr(p)
+    })
 
     return jsonify(response)
 
@@ -400,26 +402,47 @@ def patients_within_tiles():
 
     zoom = int(request.args["zoom"])
 
-    precision = 2
-    if zoom >= 17:
-        precision = 8
-    elif zoom >= 15:
-        precision = 7
-    elif zoom >= 13:
-        precision = 6
-    elif zoom >= 11:
-        precision = 5
-    elif zoom >= 8:
-        precision = 4
-    elif zoom >= 6:
-        precision = 3
-    elif zoom >= 3:
-        precision = 2
+    # hehe
+    distance = 2
+    if zoom == 17:
+        distance = 0.001
+    elif zoom == 16:
+        distance = 0.002
+    elif zoom == 15:
+        distance = 0.003
+    elif zoom == 14:
+        distance = 0.008
+    elif zoom == 13:
+        distance = 0.009
+    elif zoom == 12:
+        distance = 0.01
+    elif zoom == 11:
+        distance = 0.02
+    elif zoom == 10:
+        distance = 0.07
+    elif zoom == 9:
+        distance = 0.09
+    elif zoom == 8:
+        distance = 0.5
+    elif zoom == 7:
+        distance = 0.5
+    elif zoom == 6:
+        distance = 1
+    elif zoom == 5:
+        distance = 2
+    elif zoom == 4:
+        distance = 3
+    elif zoom == 3:
+        distance = 4
+    elif zoom == 2:
+        distance = 10
+    elif zoom == 1:
+        distance = 50
     
 
-    hashes = compute_geohash_tiles((bbox_x1, bbox_y1, bbox_x2, bbox_y2), precision)
-    print(hashes)
-    print(len(hashes))
+    # hashes = compute_geohash_tiles((bbox_x1, bbox_y1, bbox_x2, bbox_y2), precision)
+    # print(hashes)
+    # print(len(hashes))
 
     coordinates_patients = {
         "type": "FeatureCollection",
@@ -429,40 +452,83 @@ def patients_within_tiles():
     # Connect to our PostgreSQL
 
     # ppp = time.time()
-    for h in range(len(hashes)):
+    # for h in range(len(hashes)):
         # c = Patient.query.join(Address, Patient.home_address_id == Address.id).filter(Address.geohash.ilike(f'{h}%')).count()
         # start_time = time.time()
         # c = Address.query.filter(Address.geohash.ilike(f'{hashes[h]}%')).count()
         # c = Address.query.filter(Address.geohash.like(f'{hashes[h]}%')).count()
-
-        sql = text("""
-            SELECT SUM(1) FROM "Address" WHERE geohash LIKE '{0}%'
-        """.format(hashes[h]))
-        m = db.engine.execute(sql)
-        for a in m:
-            for z in a:
-                c = z
+    # sql = text("""
+    # SELECT
+    #   ST_NumGeometries(gc) as num_geometries,
+    #   ST_X(ST_Centroid(gc)) AS X, 
+    #   ST_Y(ST_Centroid(gc)) AS Y
+    # FROM (
+    #   SELECT unnest(ST_ClusterWithin(geom, 0.0035)) AS gc FROM (
+    #   SELECT DISTINCT ON (geom) geom FROM "Address"
+    #     WHERE geom && ST_MakeEnvelope(%s, %s, %s, %s, 4326)) AS points
+    # ) f;
+    # """ % (bbox_y1, bbox_x1, bbox_y2, bbox_x2))
+    sql = text("""
+    SELECT row_number() over () AS id,
+      ST_NumGeometries(gc),
+      ST_X(ST_Centroid(gc)) AS X,
+      ST_Y(ST_Centroid(gc)) AS Y
+    FROM (
+      SELECT unnest(ST_ClusterWithin(geom, %s)) gc
+      FROM (
+        SELECT * FROM "Address" WHERE geom && ST_MakeEnvelope(%s, %s, %s, %s, 4326)
+      ) AS points
+    ) f;
+    """ % (str(distance), bbox_y1, bbox_x1, bbox_y2, bbox_x2))
+    # sql = text("""
+    #     SELECT SUM(1) FROM "Address" WHERE geohash LIKE '{0}%'
+    # """.format(hashes[h]))
+    m = db.engine.execute(sql)
+    for a in m:
+        print(a[1])
+        # 1 numbers
+        # 2 lon
+        # 3 lat
+        # for z in a:
+            # print(z)
+            # c = z
         # print(c)
         # process_time = time.time() - start_time
         # print("sql query time", process_time)
         # w = time.time()
-        if c:
-            # print(q.count())
-            lat, lon = geohash.decode(hashes[h])
+        # if c:
+        #     # print(q.count())
+        #     lat, lon = geohash.decode(hashes[h])
+        count = int(a[1])
+        if count == 1:
+            coordinates_patients["features"].append(
+                 {
+                    "type": 'Feature',
+                    "geometry": {
+                        "type": 'Point',
+                        "coordinates": [a[3], a[2]]
+                    },
+                    "id": uuid.uuid1(),
+                    "options": {
+                        "preset": 'islands#blueIcon'
+                    }
+                },
+            )
+        else:
             coordinates_patients["features"].append(
                 {
                     "type": 'Cluster',
                     "id": uuid.uuid1(),
                     # "bbox": [[bbox_x1, bbox_y1], [bbox_x2, bbox_y2]],
-                    "number": c,
+                    "number": int(a[1]),
                     "geometry": {
                         "type": 'Point',
-                        "coordinates": [lat, lon]
+                        "coordinates": [a[3], a[2]]
                     },
                     "properties": {
                         "balloonContent": "идет загрузка...",
                         "clusterCaption": "идет загрузка...",
-                        "iconContent": c,
+                        "iconContent": int(a[1]),
                     }
                 }
             )
