@@ -242,12 +242,17 @@ function init() {
         )
         .then(
           function (data) {
-              let i = 0;
-            geoObjects.forEach(function (geoObject) {
-                geoObject.properties.balloonContent = data[i].balloonContent;
-                geoObject.properties.clusterCaption = data[i].clusterCaption;
-                i++;
-            });
+            if (isCluster) {
+                let i = 0;
+                geoObjects.forEach(function (geoObject) {
+                    geoObject.properties.balloonContent = data[i].balloonContent;
+                    geoObject.properties.clusterCaption = data[i].clusterCaption;
+                    i++;
+                });
+            } else {
+                geoObjects.properties.balloonContent = data[0].balloonContent;
+                geoObjects.properties.clusterCaption = data[0].clusterCaption;
+            }
             setNewData();
           },
           function () {
@@ -259,7 +264,6 @@ function init() {
         );
 
     function setNewData() {
-        console.log("data recieved");
       if (isCluster && remoteObjectManager.clusters.balloon.isOpen(id)) {
         remoteObjectManager.clusters.balloon.setData(
             remoteObjectManager.clusters.balloon.getData()
@@ -277,12 +281,9 @@ function init() {
     let objectId = e.get('objectId');
     let geoObject = remoteObjectManager.objects.getById(objectId);
     let zoom = myMap.getZoom();
-    geoObject.properties.balloonContent = "Идет загрузка";
+    geoObject.properties.balloonContent = "Loading";
     remoteObjectManager.objects.balloon.open(objectId);
-    loadBalloonData(geoObject.geometry.coordinates).then((data) => {
-        geoObject.properties.balloonContent = data[0].balloonContent;
-        remoteObjectManager.objects.balloon.setData(geoObject);
-    })
+    downloadContent(geoObject, geoObject.geometry.coordinates, objectId, false);
     myMap.setCenter(geoObject.geometry.coordinates, zoom);
   }
 
@@ -292,7 +293,7 @@ function init() {
     let zoom = myMap.getZoom();
     let geoObject = cluster.properties.geoObjects;
     if (zoom == 19) {
-        downloadContent(geoObject, cluster.geometry.coordinates, objectId, true)
+        downloadContent(geoObject, cluster.geometry.coordinates, objectId, true);
     } else {
         myMap.setCenter(cluster.geometry.coordinates, zoom + 1);
     }
