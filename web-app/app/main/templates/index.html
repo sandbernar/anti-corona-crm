@@ -198,7 +198,7 @@ function init() {
   var myMap = new ymaps.Map(
     "map",
     {
-      center: [51.48278022207821, 68.90625],
+      center: [51.14744, 71.5189],
       zoom: 8,
       controls: ["zoomControl"],
     },
@@ -210,72 +210,16 @@ function init() {
   var remoteObjectManager = new ymaps.RemoteObjectManager(
     window.location.origin + "/patients_within_tiles?bbox=%b&zoom=%z&tiles=%t",
     {
-        clusterMaxZoom: 19,
+      clusterHasBaloon: true,
+      clusterDisableClickZoom: false,
     }
   );
-  
-  remoteObjectManager.clusters.events.add('click', function (e) {
-    var objectId = e.get('objectId');
-    var geoObject = remoteObjectManager.clusters.getById(objectId);
-    let zoom = myMap.getZoom() >= 19 ? myMap.getZoom() : myMap.getZoom() + 1;
-    let zo = document.querySelector("#zoom");
-    zo.innerHTML = zoom;
-    myMap.setCenter(geoObject.geometry.coordinates,  zoom);
-  });
-  // Подписываемся на событие добавления объекта в менеджер.
+
   myMap.geoObjects.add(remoteObjectManager);
 
-  remoteObjectManager.objects.events.add('click', function (e) {
-    var objectId = e.get('objectId');
-    var geoObject = remoteObjectManager.objects.getById(objectId);
-    myMap.setCenter(geoObject.geometry.coordinates, 19)
-      .then(function () {
-        downloadContent([geoObject], objectId);
-        remoteObjectManager.objects.balloon.open(id);
-      })
-  });
-
-
-  // Назначаем обработчик событий на коллекцию объектов менеджера.
-//   remoteObjectManager.objects.events.add(["click"], onObjectEvent);
-
-//   remoteObjectManager.objects.events.add('balloonopen', function (e) {
-//     // Получим объект, на котором открылся балун.
-//     let id = e.get('objectId'),
-//     geoObject = remoteObjectManager.objects.getById(id);
-//     // Загрузим данные для объекта при необходимости.
-//     downloadContent([geoObject], id);
-//   });
-
-  remoteObjectManager.clusters.events.add('balloonopen', function (e) {
-        // Получим id кластера, на котором открылся балун.
-        console.log("Hello");
-        console.log(e);
-        var id = e.get('objectId'),
-        // Получим геообъекты внутри кластера.
-        cluster = objectManager.clusters.getById(id),
-        geoObjects = cluster.properties.geoObjects;
-
-        // Загрузим данные для объектов при необходимости.
-        downloadContent(geoObjects, id, true);
-    });
-
-
-  function downloadContent(geoObjects, id, isCluster) {
-    // Создадим массив меток, для которых данные ещё не загружены.
-    latLon = geoObjects.map(function (geoObject) {
-      return geoObject.geometry.coordinates;
-    });
-    console.log(geoObjects);
-    if (latLon.length) {
-      // Сервер обработает массив идентификаторов и на его основе
-      // вернет JSON-объект, содержащий текст балуна для
-      // заданных меток.
-      a = {
-        lat_lon: latLon,
-      };
+  function downloadContent(geoObjects,ll, id, isCluster) {
       var csrf_token = "{{ csrf_token() }}";
-
+      
       $.ajaxSetup({
         beforeSend: function (xhr, settings) {
           if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
@@ -287,10 +231,9 @@ function init() {
       ymaps.vow
         .resolve(
           $.ajax({
-            // Обратите внимание, что серверную часть необходимо реализовать самостоятельно.
             contentType: "application/json",
             type: "POST",
-            data: JSON.stringify(a),
+            data: JSON.stringify({lat_lon: ll}),
             url: window.location.origin + "/patients_content_by_id",
             dataType: "json",
             processData: false,
@@ -299,29 +242,21 @@ function init() {
         )
         .then(
           function (data) {
+              let i = 0;
             geoObjects.forEach(function (geoObject) {
-              // Содержимое балуна берем из данных, полученных от сервера.
-              // Сервер возвращает массив объектов вида:
-              // [ {"balloonContent": "Содержимое балуна"}, ...]
-              for (let i = 0; i < data.length; i++) {
-                  geoObject.properties.balloonContent = data[i].balloonContent;
-                  geoObject.properties.clusterCaption = data[i].clusterCaption;
-                  break;
-              }
-              console.log("props", geoObject.properties);
+                geoObject.properties.balloonContent = data[i].balloonContent;
+                geoObject.properties.clusterCaption = data[i].clusterCaption;
+                i++;
             });
-            // Оповещаем балун, что нужно применить новые данные.
             setNewData();
           },
           function () {
             geoObjects.forEach(function (geoObject) {
               geoObject.properties.balloonContent = "Not found";
             });
-            // Оповещаем балун, что нужно применить новые данные.
             setNewData();
           }
         );
-    }
 
     function setNewData() {
         console.log("data recieved");
@@ -337,7 +272,36 @@ function init() {
       }
     }
   }
+
+  const objectEventListener = (e) => {
+    let objectId = e.get('objectId');
+    let geoObject = remoteObjectManager.objects.getById(objectId);
+    let zoom = myMap.getZoom();
+    geoObject.properties.balloonContent = "Идет загрузка";
+    remoteObjectManager.objects.balloon.open(objectId);
+    loadBalloonData(geoObject.geometry.coordinates).then((data) => {
+        geoObject.properties.balloonContent = data[0].balloonContent;
+        remoteObjectManager.objects.balloon.setData(geoObject);
+    })
+    myMap.setCenter(geoObject.geometry.coordinates, zoom);
+  }
+
+  const clusterEventListener = (e) => {
+    let objectId = e.get('objectId');
+    let cluster = remoteObjectManager.clusters.getById(objectId);
+    let zoom = myMap.getZoom();
+    let geoObject = cluster.properties.geoObjects;
+    if (zoom == 19) {
+        downloadContent(geoObject, cluster.geometry.coordinates, objectId, true)
+    } else {
+        myMap.setCenter(cluster.geometry.coordinates, zoom + 1);
+    }
+  }
+
+  remoteObjectManager.objects.events.add("click", objectEventListener);
+  remoteObjectManager.clusters.events.add("click", clusterEventListener);
 }
+
 
 
 

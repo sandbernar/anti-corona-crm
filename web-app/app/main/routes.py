@@ -167,34 +167,35 @@ def patients_content_by_id():
     req = request.get_json()
     if not "lat_lon" in req:
         return render_template('errors/error-400.html'), 400
-    print("lat lon", req["lat_lon"][0])
-    lat_lon = req["lat_lon"][0]
+    print("lat lon", req["lat_lon"])
+    lat_lon = req["lat_lon"]
 
     q = Patient.query
 
     response = []
 
-    p = None
+    pat = None
     try:
-        p = q.join(Address, Patient.home_address_id == Address.id).filter(Address.lat == str(lat_lon[0])).filter(Address.lng == str(lat_lon[1])).first()
+        pat = q.join(Address, Patient.home_address_id == Address.id).filter(Address.lat == str(lat_lon[0])).filter(Address.lng == str(lat_lon[1]))
     except exc.SQLAlchemyError as err:
         print(err)
         return render_template('errors/error-400.html'), 400
-    if not p:
+    if not pat:
         return jsonify({})
-    print(p)
-    is_found = "Нет"
-    is_infected = "Нет"
-    if p.is_found:
-        is_found = "Да"
-    if p.is_infected:
-        is_infected = "Да"
-    response.append({
-        "id": uuid.uuid1(),
-        "balloonContent": '<a href="/patient_profile?id=' + str(p.id) + '">' + 'test' + '</a>',
-        # "balloonContent": '<a href="/patient_profile?id=' + str(p.id) + '">' + repr(p) + '</a><br><strong>Регион</strong>:' + repr(p.region) + '<br><strong>Адрес</strong>: ' + repr(p.home_address) + '<br><strong>Найден</strong>: ' + is_found + '<br><strong>Инфицирован</strong>: ' + is_infected + '<br><strong>Статус</strong>:' + p.status.name + '<br>',
-        "clusterCaption": repr(p)
-    })
+    # print(p)
+    for p in pat:
+        is_found = "Нет"
+        is_infected = "Нет"
+        if p.is_found:
+            is_found = "Да"
+        if p.is_infected:
+            is_infected = "Да"
+        response.append({
+            "id": uuid.uuid1(),
+            "balloonContent": '<a href="/patient_profile?id=' + str(p.id) + '">' + 'test' + '</a>',
+            # "balloonContent": '<a href="/patient_profile?id=' + str(p.id) + '">' + repr(p) + '</a><br><strong>Регион</strong>:' + repr    (p.region) + '<br><strong>Адрес</strong>: ' + repr(p.home_address) + '<br><strong>Найден</strong>: ' + is_found +   '<br><strong>Инфицирован</strong>: ' + is_infected + '<br><strong>Статус</strong>:' + p.status.name + '<br>',
+            "clusterCaption": repr(p)
+        })
 
     return jsonify(response)
 
@@ -499,7 +500,25 @@ def patients_within_tiles():
         # if c:
         #     # print(q.count())
         #     lat, lon = geohash.decode(hashes[h])
+
+        features = []
         count = int(a[1])
+        if zoom == 19:
+            for i in range(count):
+                features.append(
+                    {
+                        "type": 'Feature',
+                        "id":  uuid.uuid1(),
+                        "properties": {
+                            "balloonConntent": "Loading...",
+                            "clusterCaption": "Loading..."
+                        },
+                        "geometry": {
+                            "type": 'Point',
+                            "coordinates": [a[3], a[2]]
+                        }
+                    }
+                )
         if count == 1:
             coordinates_patients["features"].append(
                  {
@@ -525,9 +544,8 @@ def patients_within_tiles():
                         "type": 'Point',
                         "coordinates": [a[3], a[2]]
                     },
+                    "features": features,
                     "properties": {
-                        "balloonContent": "идет загрузка...",
-                        "clusterCaption": "идет загрузка...",
                         "iconContent": int(a[1]),
                     }
                 }
