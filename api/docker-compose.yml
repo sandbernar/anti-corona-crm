@@ -1,11 +1,54 @@
 version: '3'
+
+networks:
+  frontend:
+    driver: ${NETWORKS_DRIVER}
+  backend:
+    driver: ${NETWORKS_DRIVER}
+
 services:
   api:
     restart: always
-    network_mode: "host"
     env_file: .env
     build: .
     ports:
-      - "4080:80"
+      - "${API_PORT}:80"
     volumes:
       - .:/app
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    networks:
+      - frontend
+      - backend
+  postgres:
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_DB: ${DATABASE_NAME}
+      PGDATA: ${DATA_PATH_HOST}/postgres
+    build:
+      context: ./postgres
+      args:
+        - POSTGRES_VERSION=${POSTGRES_VERSION}
+    volumes:
+      - ${DATA_PATH_HOST}/postgres:/var/lib/postgresql/whatewer
+      - ${POSTGRES_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
+    networks:
+      - backend
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      - "PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}"
+      - "PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}"
+    ports:
+      - "${PGADMIN_PORT}:80"
+    volumes:
+      - ${DATA_PATH_HOST}/pgadmin:/var/lib/pgadmin/whatewer
+    depends_on:
+      - postgres
+    networks:
+      - frontend
+      - backend
